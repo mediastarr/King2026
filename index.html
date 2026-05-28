@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>StarrTube</title>
+<meta name="viewport" content="width=600, height=600, initial-scale=1">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; color:#fff; font-family:system-ui; width:600px; height:600px; overflow:hidden; }
+#app { width:100%; height:100%; display:flex; flex-direction:column; }
+.header { height:60px; background:#111; display:flex; align-items:center; padding:0 20px; border-bottom:1px solid #333; }
+.content { flex:1; overflow:auto; padding:10px; }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.card { background:#222; border:3px solid transparent; border-radius:8px; padding:10px; cursor:pointer; }
+.card:focus,.card.focused { border-color:#0ff; outline:none; }
+.card img { width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:4px; }
+.card.title { font-size:12px; margin-top:5px; height:32px; overflow:hidden; }
+.tabs { height:60px; display:flex; background:#111; border-top:1px solid #333; }
+.tab { flex:1; background:none; border:none; color:#888; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; cursor:pointer; border:3px solid transparent; }
+.tab:focus,.tab.focused { border-color:#0ff; color:#0ff; outline:none; }
+.tab.active { color:#0ff; }
+.menu { position:absolute; top:60px; left:0; right:0; bottom:60px; background:#000; display:none; padding:20px; z-index:10; }
+.menu.show { display:block; }
+.menu-item { background:#222; border:3px solid transparent; padding:20px; margin-bottom:10px; border-radius:8px; cursor:pointer; }
+.menu-item:focus,.menu-item.focused { border-color:#0ff; outline:none; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header"><strong>▶ StarrTube</strong></div>
+
+  <div class="content">
+    <div id="home" class="screen">
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab focused" tabindex="0" data-tab="0">⌂<br>Home</button>
+    <button class="tab" tabindex="0" data-tab="1">⌕<br>Search</button>
+    <button class="tab" tabindex="0" data-tab="2">◫<br>Shorts</button>
+    <button class="tab" tabindex="0" data-tab="3">↻<br>History</button>
+    <button class="tab" tabindex="0" data-tab="4">⋮<br>Menu</button>
+  </div>
+
+  <div class="menu" id="menu">
+    <div class="menu-item focused" tabindex="0">Go Home</div>
+    <div class="menu-item" tabindex="0">Account</div>
+    <div class="menu-item" tabindex="0">Contrast</div>
+    <div class="menu-item" tabindex="0">Live US Videos</div>
+    <div class="menu-item" tabindex="0">Close</div>
+  </div>
+</div>
+
+<script>
+const API_KEY = 'AIzaSyDurH02crJj5sqXrVO2Ts1ecUPviphWDMU';
+let focusIndex = 0;
+let currentMode = 'tabs'; // tabs, grid, menu
+
+const tabs = document.querySelectorAll('.tab');
+const menuItems = document.querySelectorAll('.menu-item');
+const grid = document.getElementById('grid');
+
+// Load videos
+async function loadVideos() {
+  grid.innerHTML = 'Loading...';
+  try {
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=${API_KEY}&maxResults=12&q=music&regionCode=US`);
+    const data = await res.json();
+    grid.innerHTML = '';
+    data.items.forEach((v, i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.tabIndex = 0;
+      card.innerHTML = `<img src="${v.snippet.thumbnails.medium.url}"><div class="title">${v.snippet.title}</div>`;
+      card.onclick = () => window.open(`https://www.youtube.com/watch?v=${v.id.videoId}`, '_blank');
+      grid.appendChild(card);
+    });
+    setTimeout(() => {
+      const firstCard = grid.querySelector('.card');
+      if (firstCard) {
+        focusIndex = 0;
+        currentMode = 'grid';
+        updateFocus();
+      }
+    }, 100);
+  } catch (e) {
+    grid.innerHTML = 'Error loading. Check API key.';
+  }
+}
+
+function updateFocus() {
+  document.querySelectorAll('.focused').forEach(el => el.classList.remove('focused'));
+
+  let items;
+  if (currentMode === 'tabs') items = tabs;
+  else if (currentMode === 'menu') items = menuItems;
+  else if (currentMode === 'grid') items = grid.querySelectorAll('.card');
+
+  if (items && items[focusIndex]) {
+    items[focusIndex].classList.add('focused');
+    items[focusIndex].focus();
+  }
+}
+
+function move(dir) {
+  let items, max;
+
+  if (currentMode === 'tabs') {
+    items = tabs; max = 4;
+    if (dir === 'left' && focusIndex > 0) focusIndex--;
+    if (dir === 'right' && focusIndex < max) focusIndex++;
+    if (dir === 'up') { currentMode = 'grid'; focusIndex = 0; }
+  }
+  else if (currentMode === 'menu') {
+    items = menuItems; max = 4;
+    if (dir === 'up' && focusIndex > 0) focusIndex--;
+    if (dir === 'down' && focusIndex < max) focusIndex++;
+  }
+  else if (currentMode === 'grid') {
+    const cards = grid.querySelectorAll('.card');
+    max = cards.length - 1;
+    if (dir === 'left' && focusIndex % 2 === 1) focusIndex--;
+    if (dir === 'right' && focusIndex % 2 === 0 && focusIndex < max) focusIndex++;
+    if (dir === 'up' && focusIndex >= 2) focusIndex -= 2;
+    if (dir === 'down') {
+      if (focusIndex + 2 <= max) focusIndex += 2;
+      else { currentMode = 'tabs'; focusIndex = 0; }
+    }
+  }
+  updateFocus();
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') { e.preventDefault(); move('left'); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); move('right'); }
+  if (e.key === 'ArrowUp') { e.preventDefault(); move('up'); }
+  if (e.key === 'ArrowDown') { e.preventDefault(); move('down'); }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    document.querySelector('.focused')?.click();
+  }
+  if (e.key === 'Escape') {
+    if (menu.classList.contains('show')) {
+      menu.classList.remove('show');
+      currentMode = 'tabs';
+      focusIndex = 4;
+      updateFocus();
+    }
+  }
+});
+
+// Tab clicks
+tabs.forEach((tab, i) => {
+  tab.onclick = () => {
+    if (i === 4) { // Menu
+      menu.classList.add('show');
+      currentMode = 'menu';
+      focusIndex = 0;
+      updateFocus();
+    } else {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentMode = 'tabs';
+      focusIndex = i;
+      updateFocus();
+    }
+  };
+});
+
+// Menu clicks
+menuItems.forEach((item, i) => {
+  item.onclick = () => {
+    menu.classList.remove('show');
+    if (i === 0) { // Go Home
+      currentMode = 'grid';
+      focusIndex = 0;
+    } else if (i === 3) { // Live
+      loadVideos();
+      currentMode = 'grid';
+      focusIndex = 0;
+    } else if (i === 4) { // Close
+      currentMode = 'tabs';
+      focusIndex = 4;
+    }
+    updateFocus();
+  };
+});
+
+// Start
+loadVideos();
+updateFocus();
+</script>
+</body>
+</html>
