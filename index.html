@@ -4,52 +4,57 @@
 <meta name="viewport" content="width=600,height=600">
 <style>
 body{margin:0;background:#000;color:#fff;font-family:sans-serif;width:600px;height:600px;overflow:hidden;display:flex;flex-direction:column}
-.header{height:50px;background:#111;display:flex;align-items:center;padding:0 15px;font-weight:bold;border-bottom:1px solid #333}
-.searchbar{display:none;height:50px;background:#111;padding:8px;border-bottom:1px solid #333}
+.header{height:45px;background:#111;display:flex;align-items:center;padding:0 15px;font-weight:bold;border-bottom:1px solid #333;font-size:14px}
+.searchbar{display:none;height:45px;background:#111;padding:6px;border-bottom:1px solid #333}
 .searchbar.show{display:flex}
-.searchbar input{flex:1;background:#222;border:1px solid #444;color:#fff;padding:0 12px;border-radius:6px;font-size:14px;outline:none}
+.searchbar input{flex:1;background:#222;border:1px solid #444;color:#fff;padding:0 10px;border-radius:5px;font-size:13px;outline:none}
 .searchbar input:focus{border-color:#0ff}
-.searchbar button{background:#0ff;color:#000;border:none;padding:0 15px;margin-left:8px;border-radius:6px;font-weight:bold;cursor:pointer}
-.grid{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px;overflow:auto;align-content:start}
-.card{background:#222;border:3px solid #222;border-radius:8px;padding:8px;cursor:pointer}
+.searchbar button{background:#0ff;color:#000;border:none;padding:0 12px;margin-left:6px;border-radius:5px;font-weight:bold;cursor:pointer;font-size:12px}
+.grid{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px;overflow:auto;align-content:start}
+.card{background:#222;border:2px solid #222;border-radius:6px;padding:6px;cursor:pointer}
 .card:focus{border-color:#0ff;outline:none}
-.card img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:4px;background:#000}
-.card div{font-size:12px;margin-top:4px;height:28px;overflow:hidden;line-height:1.2}
-.tabs{height:65px;display:flex;background:#111;border-top:2px solid #333}
-.tab{flex:1;background:none;border:3px solid transparent;color:#888;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;cursor:pointer;gap:3px;padding:5px}
-.tab:focus{border-color:#0ff;color:#0ff;outline:none;background:#0a2a2a}
-.tab.active{color:#0ff;background:#0a1a1a}
-.tab-icon{font-size:24px;line-height:1}
-.loading{grid-column:1/-1;text-align:center;padding:40px;color:#888}
+.card img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:3px;background:#000}
+.card div{font-size:11px;margin-top:3px;height:26px;overflow:hidden;line-height:1.2}
+.tabs{height:58px;display:flex;background:#111;border-top:1px solid #333}
+.tab{flex:1;background:none;border:2px solid transparent;color:#777;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;cursor:pointer;gap:1px;padding:2px;min-width:0}
+.tab:focus{border-color:#0ff;color:#0ff;outline:none;background:#0a1a1a}
+.tab.active{color:#0ff}
+.tab-icon{font-size:20px;line-height:1}
+.tab-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;text-align:center}
+.loading{grid-column:1/-1;text-align:center;padding:30px;color:#888;font-size:13px}
 </style>
 </head>
 <body>
 <div class="header">▶ StarrTube</div>
 <div class="searchbar" id="searchbar">
-  <input id="q" placeholder="Search YouTube..." onkeydown="if(event.key==='Enter')doSearch()">
-  <button onclick="doSearch()">SEARCH</button>
+  <input id="q" placeholder="Search..." onkeydown="if(event.key==='Enter')doSearch()">
+  <button onclick="doSearch()">GO</button>
 </div>
 <div class="grid" id="g"></div>
 <div class="tabs">
-  <button class="tab active" onclick="switchTab(this,'home')">
+  <button class="tab active" onclick="switchTab(this,0)">
     <div class="tab-icon">⌂</div>
-    <div>HOME</div>
+    <div class="tab-label">Home</div>
   </button>
-  <button class="tab" onclick="switchTab(this,'search')">
+  <button class="tab" onclick="switchTab(this,1)">
     <div class="tab-icon">⌕</div>
-    <div>SEARCH</div>
+    <div class="tab-label">Search</div>
   </button>
-  <button class="tab" onclick="switchTab(this,'news')">
+  <button class="tab" onclick="switchTab(this,2)">
     <div class="tab-icon">📰</div>
-    <div>NEWS</div>
+    <div class="tab-label">News</div>
   </button>
-  <button class="tab" onclick="switchTab(this,'sports')">
+  <button class="tab" onclick="switchTab(this,3)">
     <div class="tab-icon">⚽</div>
-    <div>SPORTS</div>
+    <div class="tab-label">Sports</div>
   </button>
-  <button class="tab" onclick="switchTab(this,'gaming')">
+  <button class="tab" onclick="switchTab(this,4)">
     <div class="tab-icon">🎮</div>
-    <div>GAMING</div>
+    <div class="tab-label">Gaming</div>
+  </button>
+  <button class="tab" onclick="switchTab(this,5)">
+    <div class="tab-icon">●</div>
+    <div class="tab-label">Live</div>
   </button>
 </div>
 
@@ -58,15 +63,18 @@ const KEY='AIzaSyDurH02crJj5sqXrVO2Ts1ecUPviphWDMU';
 const g=document.getElementById('g');
 const searchbar=document.getElementById('searchbar');
 const q=document.getElementById('q');
+const tabs=[...document.querySelectorAll('.tab')];
 
-async function load(query){
+async function load(query, live=false){
   g.innerHTML='<div class="loading">Loading...</div>';
   searchbar.classList.remove('show');
   try{
-    const r=await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=20&q=${encodeURIComponent(query)}&key=${KEY}&regionCode=US`);
+    const params=new URLSearchParams({part:'snippet',type:'video',maxResults:'20',q:query,key:KEY,regionCode:'US'});
+    if(live)params.set('eventType','live');
+    const r=await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`);
     const d=await r.json();
     g.innerHTML='';
-    d.items.forEach(v=>{
+    (d.items||[]).forEach(v=>{
       const c=document.createElement('div');
       c.className='card';c.tabIndex=0;
       c.innerHTML=`<img src="${v.snippet.thumbnails.medium.url}" loading="lazy"><div>${v.snippet.title}</div>`;
@@ -74,54 +82,57 @@ async function load(query){
       g.appendChild(c);
     });
     setTimeout(()=>g.firstChild?.focus(),100);
-  }catch(e){g.innerHTML='<div class="loading">Error</div>'}
+  }catch(e){g.innerHTML='<div class="loading">Error loading</div>'}
 }
 
-function switchTab(btn,type){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+function switchTab(btn,idx){
+  tabs.forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
+  const types=['home','search','news','sports','gaming','live'];
+  const type=types[idx];
+
   if(type==='home')load('trending');
-  else if(type==='search'){searchbar.classList.add('show');setTimeout(()=>{q.focus();q.select()},50);g.innerHTML='<div class="loading">Type above and press Enter</div>'}
+  else if(type==='search'){searchbar.classList.add('show');setTimeout(()=>{q.focus();q.value=''},50);g.innerHTML='<div class="loading">Enter search term above</div>'}
   else if(type==='news')load('news');
-  else if(type==='sports')load('sports highlights');
+  else if(type==='sports')load('sports');
   else if(type==='gaming')load('gaming');
+  else if(type==='live')load('live stream',true);
 }
 
 function doSearch(){
   const term=q.value.trim();
-  if(term){load(term)}
+  if(term){load(term);q.blur()}
 }
 
 // Navigation
 document.addEventListener('keydown',e=>{
   const f=document.activeElement;
   const cards=[...document.querySelectorAll('.card')];
-  const tabs=[...document.querySelectorAll('.tab')];
   const i=cards.indexOf(f);
   const ti=tabs.indexOf(f);
+  const k=e.key;
 
-  if(['ArrowRight','ArrowLeft','ArrowUp','ArrowDown'].includes(e.key))e.preventDefault();
+  if(['ArrowRight','ArrowLeft','ArrowUp','ArrowDown'].includes(k))e.preventDefault();
 
-  if(e.key==='ArrowRight'){
+  if(k==='ArrowRight'){
     if(i>=0&&i%2===0&&cards[i+1])cards[i+1].focus();
-    else if(ti>=0&&ti<4)tabs[ti+1].focus();
+    else if(ti>=0&&ti<5)tabs[ti+1].focus();
   }
-  if(e.key==='ArrowLeft'){
+  if(k==='ArrowLeft'){
     if(i>=0&&i%2===1)cards[i-1].focus();
     else if(ti>0)tabs[ti-1].focus();
   }
-  if(e.key==='ArrowDown'){
+  if(k==='ArrowDown'){
     if(i>=0&&cards[i+2])cards[i+2].focus();
     else if(i>=0)tabs[0].focus();
     else if(ti>=0)cards[0]?.focus();
   }
-  if(e.key==='ArrowUp'){
-    if(i>=2)cards[i-2].focus();
-    else if(i>=0)tabs[0].focus();
-  }
+  if(k==='ArrowUp'&&i>=2)cards[i-2].focus();
+  if(k==='Enter'&&f.classList.contains('tab'))f.click();
 });
 
 load('trending');
+tabs[0].focus();
 </script>
 </body>
 </html>
