@@ -1,157 +1,171 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=600,height=600">
+<meta name="viewport" content="width=600,height=600,user-scalable=no">
 <style>
-body{margin:0;background:#000;color:#0ff;font-family:monospace;width:600px;height:600px;display:flex;flex-direction:column;overflow:hidden}
-.top{height:30px;background:#111;display:flex;align-items:center;padding:0 10px;font-size:14px;font-weight:bold;border-bottom:3px solid #0ff}
-.display{background:#001a1a;padding:15px;text-align:center;border-bottom:3px solid #0ff}
-.display-text{font-size:32px;color:#0ff;min-height:40px;font-weight:bold}
-.display-hint{font-size:12px;color:#0aa;margin-top:5px}
-.keyboard{flex:1;background:#000;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:5px;overflow:auto}
-.key{background:#222;border:3px solid #555;color:#fff;font-size:24px;font-weight:bold;border-radius:8px;display:flex;align-items:center;justify-content:center;min-height:60px}
-.key:focus{background:#0ff;color:#000;border-color:#0ff;outline:none;box-shadow:0 0 15px #0ff}
-.key:active{background:#0aa}
-.key.big{grid-column:span 2;font-size:18px}
-.key.enter{background:#004400;border-color:#0f0;color:#0f0;font-size:20px}
-.key.enter:focus{background:#0f0;color:#000}
-.key.back{background:#440000;border-color:#f00;color:#f88;font-size:20px}
-.key.back:focus{background:#f00;color:#fff}
-.test-area{padding:10px;background:#111;text-align:center}
-.test-btn{background:#0ff;color:#000;border:none;padding:15px 30px;font-size:18px;font-weight:bold;border-radius:5px;margin:5px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+body{background:#000;color:#0ff;font-family:Arial,sans-serif;width:600px;height:600px;display:flex;flex-direction:column;overflow:hidden}
+.header{height:28px;background:#111;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;border-bottom:2px solid #0ff;flex-shrink:0}
+.display{background:#001a1a;padding:10px;text-align:center;border-bottom:2px solid #0ff;flex-shrink:0}
+.display-main{font-size:28px;color:#0ff;min-height:34px;font-weight:bold;letter-spacing:1px;font-family:'Courier New',monospace}
+.display-sub{font-size:10px;color:#0aa;margin-top:3px}
+.keyboard-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#000}
+.keyboard-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px}
+.keyboard-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding-bottom:4px}
+.key{background:#1a1a1a;border:2px solid #444;color:#fff;font-size:22px;font-weight:bold;border-radius:6px;display:flex;align-items:center;justify-content:center;min-height:52px;user-select:none;-webkit-user-select:none}
+.key:active{background:#0ff;color:#000;border-color:#0ff;transform:scale(0.94)}
+.key.pressed{background:#0aa!important;color:#000!important}
+.action-bar{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:#000;border-top:3px solid #0ff;flex-shrink:0}
+.action-btn{height:56px;font-size:18px;font-weight:bold;border:3px solid;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.action-btn.enter{background:#002200;border-color:#0f0;color:#0f0}
+.action-btn.enter:active{background:#0f0;color:#000}
+.action-btn.back{background:#220000;border-color:#f00;color:#f88}
+.action-btn.back:active{background:#f00;color:#fff}
+.action-btn.clear{background:#111;border-color:#666;color:#aaa;font-size:14px}
+.action-btn.clear:active{background:#666;color:#000}
 </style>
 </head>
 <body>
-<div class="top">KEYBOARD TEST - TAP BUTTONS BELOW</div>
+<div class="header">TAP LETTERS - NO DOUBLE INPUT</div>
 
 <div class="display">
-  <div class="display-text" id="out">READY</div>
-  <div class="display-hint" id="hint">Tap a letter to test</div>
+  <div class="display-main" id="main">_</div>
+  <div class="display-sub" id="sub">Tap letters below</div>
 </div>
 
-<div class="keyboard" id="kb"></div>
-
-<div class="test-area">
-  <button class="test-btn" onclick="testNav()">TEST NAVIGATION</button>
+<div class="keyboard-wrap">
+  <div class="keyboard-scroll">
+    <div class="keyboard-grid" id="grid"></div>
+  </div>
+  
+  <div class="action-bar">
+    <button class="action-btn clear" id="btnClear">CLEAR</button>
+    <button class="action-btn back" id="btnBack">← BACK</button>
+    <button class="action-btn enter" id="btnEnter" style="grid-column:span 2">SEARCH ↵</button>
+  </div>
 </div>
 
 <script>
 let text = '';
+let lastPress = 0;
+let lastKey = '';
 
-function updateDisplay(msg, hint='') {
-  document.getElementById('out').textContent = msg;
-  document.getElementById('hint').textContent = hint;
-  console.log('Display:', msg);
+const main = document.getElementById('main');
+const sub = document.getElementById('sub');
+const grid = document.getElementById('grid');
+
+function updateDisplay() {
+  main.textContent = text || '_';
+  main.style.opacity = text ? '1' : '0.4';
+  sub.textContent = text ? `${text.length} characters` : 'Tap letters below';
 }
 
-// Create simple test keyboard
-const kb = document.getElementById('kb');
-const letters = 'ABCDEFGH';
+function handleKeyPress(key, element) {
+  const now = Date.now();
+  const timeDiff = now - lastPress;
+  
+  if (key === lastKey && timeDiff < 300) {
+    sub.textContent = '⚠ Blocked double-tap';
+    setTimeout(updateDisplay, 800);
+    return false;
+  }
+  
+  lastPress = now;
+  lastKey = key;
+  element.classList.add('pressed');
+  setTimeout(() => element.classList.remove('pressed'), 150);
+  return true;
+}
 
-letters.split('').forEach(l => {
-  const btn = document.createElement('button');
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
+  const btn = document.createElement('div');
   btn.className = 'key';
-  btn.textContent = l;
-  btn.tabIndex = 0;
-  btn.onclick = function() {
-    text += l;
-    updateDisplay(text, 'Letter ' + l + ' pressed!');
-    // Visual feedback
-    btn.style.background = '#0ff';
-    setTimeout(() => btn.style.background = '', 200);
-  };
-  // Make sure focus works
-  btn.onfocus = function() {
-    updateDisplay(text || 'READY', 'Focused on ' + l + ' - Press ENTER');
-  };
-  kb.appendChild(btn);
+  btn.textContent = letter;
+  btn.dataset.key = letter;
+  
+  let pointerDown = false;
+  
+  btn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    pointerDown = true;
+  }, {passive: false});
+  
+  btn.addEventListener('pointerup', (e) => {
+    e.preventDefault();
+    if (!pointerDown) return;
+    pointerDown = false;
+    
+    if (handleKeyPress(letter, btn)) {
+      text += letter.toLowerCase();
+      updateDisplay();
+    }
+  }, {passive: false});
+  
+  btn.addEventListener('pointercancel', () => {
+    pointerDown = false;
+  });
+  
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+  grid.appendChild(btn);
 });
 
-// Add ENTER button - VERY VISIBLE
-const enterBtn = document.createElement('button');
-enterBtn.className = 'key big enter';
-enterBtn.textContent = 'ENTER ↵';
-enterBtn.tabIndex = 0;
-enterBtn.onclick = function() {
-  updateDisplay('ENTER PRESSED!', 'You pressed ENTER - Text: ' + text);
-  alert('ENTER WORKS! Your text: ' + text);
-};
-enterBtn.onfocus = function() {
-  updateDisplay(text || 'READY', 'Focused on ENTER - Press to submit');
-};
-kb.appendChild(enterBtn);
+const space = document.createElement('div');
+space.className = 'key';
+space.textContent = 'SPACE';
+space.style.gridColumn = 'span 4';
+space.style.fontSize = '16px';
+space.style.background = '#0a0a0a';
+let spaceDown = false;
+space.addEventListener('pointerdown', e => { e.preventDefault(); spaceDown = true; });
+space.addEventListener('pointerup', e => {
+  e.preventDefault();
+  if (!spaceDown) return;
+  spaceDown = false;
+  if (handleKeyPress('SPACE', space)) {
+    text += ' ';
+    updateDisplay();
+  }
+});
+grid.appendChild(space);
 
-// Add BACK button - VERY VISIBLE
-const backBtn = document.createElement('button');
-backBtn.className = 'key big back';
-backBtn.textContent = '← BACK';
-backBtn.tabIndex = 0;
-backBtn.onclick = function() {
-  updateDisplay('BACK PRESSED!', 'You pressed BACK');
-  alert('BACK WORKS!');
+document.getElementById('btnClear').onclick = () => {
   text = '';
-  updateDisplay('CLEARED', 'Text cleared');
+  updateDisplay();
+  sub.textContent = 'Cleared!';
+  setTimeout(updateDisplay, 600);
 };
-backBtn.onfocus = function() {
-  updateDisplay(text || 'READY', 'Focused on BACK - Press to cancel');
+
+document.getElementById('btnBack').onclick = () => {
+  sub.textContent = 'BACK pressed';
+  alert('BACK button works!');
 };
-kb.appendChild(backBtn);
 
-// Add more letters
-'IJKL'.split('').forEach(l => {
-  const btn = document.createElement('button');
-  btn.className = 'key';
-  btn.textContent = l;
-  btn.tabIndex = 0;
-  btn.onclick = function() {
-    text += l;
-    updateDisplay(text, 'Letter ' + l);
-  };
-  btn.onfocus = function() {
-    updateDisplay(text || 'READY', 'On ' + l);
-  };
-  kb.appendChild(btn);
-});
+document.getElementById('btnEnter').onclick = () => {
+  if (!text.trim()) {
+    sub.textContent = 'Type something first!';
+    setTimeout(updateDisplay, 1000);
+    return;
+  }
+  sub.textContent = 'SEARCHING: ' + text;
+  alert('SEARCH: ' + text);
+};
 
-function testNav() {
-  updateDisplay('TEST MODE', 'Use arrows to move, ENTER to select');
-  setTimeout(() => {
-    kb.querySelector('button').focus();
-  }, 100);
-}
+updateDisplay();
 
-// Auto-focus first button
-setTimeout(() => {
-  updateDisplay('READY TO TEST', 'Tap TEST NAVIGATION button or use arrows');
-}, 500);
-
-// Keyboard navigation
-document.addEventListener('keydown', function(e) {
-  const focused = document.activeElement;
-  if(!focused.classList.contains('key')) return;
-  
-  const keys = [...kb.querySelectorAll('.key')];
-  const idx = keys.indexOf(focused);
-  const cols = 4;
-  
-  if(['ArrowRight','ArrowLeft','ArrowUp','ArrowDown'].includes(e.key)) {
+document.addEventListener('touchstart', function(e) {
+  if (e.touches.length > 1) {
     e.preventDefault();
   }
-  
-  if(e.key === 'ArrowRight' && keys[idx+1]) {
-    keys[idx+1].focus();
-  } else if(e.key === 'ArrowLeft' && idx > 0) {
-    keys[idx-1].focus();
-  } else if(e.key === 'ArrowDown' && keys[idx+cols]) {
-    keys[idx+cols].focus();
-  } else if(e.key === 'ArrowUp' && keys[idx-cols]) {
-    keys[idx-cols].focus();
-  } else if(e.key === 'Enter') {
-    focused.click();
-  }
-});
+}, {passive: false});
 
-updateDisplay('READY', 'Press TEST NAVIGATION to start');
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function(e) {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 300) {
+    e.preventDefault();
+  }
+  lastTouchEnd = now;
+}, false);
 </script>
 </body>
 </html>
