@@ -79,7 +79,7 @@ body { display:flex; align-items:center; justify-content:center; }
 #playerFrameWrap iframe { width:100%; height:100%; border:0; }
 #playerControls { position:absolute; bottom:0; left:0; right:0; height:90px; background:linear-gradient(to top, rgba(0,0,0,0.95), transparent); display:flex; align-items:center; justify-content:space-evenly; padding:0 20px; transition:opacity 0.3s; }
 #playerControls.hidden { opacity:0; pointer-events:none; }
-.ctrl-btn { width:56px; height:56px; border-radius:50%; background:rgba(20,20,0.9); border:1px solid var(--border); color:var(--text); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; }
+.ctrl-btn { width:56px; height:56px; border-radius:50%; background:rgba(20,20,20,0.9); border:1px solid var(--border); color:var(--text); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; }
 .ctrl-btn.big { width:70px; height:70px; font-size:30px; }
 .ctrl-btn.focused { background:var(--accent); color:#000; border-color:var(--accent); transform:scale(1.08); }
 </style>
@@ -100,20 +100,21 @@ body { display:flex; align-items:center; justify-content:center; }
         <span id="searchQueryDisplay" class="search-query"></span>
       </div>
       <div class="grid" id="searchGrid"></div>
+      <div class="empty" id="searchEmpty">Press Enter to search</div>
     </section>
 
     <section id="shorts" class="screen scroll-area"><div class="grid" id="shortsGrid"></div></section>
+
     <section id="history" class="screen scroll-area"><div class="grid" id="historyGrid"></div></section>
-    <section id="live" class="screen scroll-area"><div class="grid" id="liveGrid"></div></section>
   </main>
 
-  <nav id="tabs">
-    <button class="tab-btn focusable active" data-tab="home"><span class="tab-icon">⌂</span><span>Home</span></button>
-    <button class="tab-btn focusable" data-tab="search"><span class="tab-icon">⌕</span><span>Search</span></button>
-    <button class="tab-btn focusable" data-tab="shorts"><span class="tab-icon">◫</span><span>Shorts</span></button>
-    <button class="tab-btn focusable" data-tab="history"><span class="tab-icon">↺</span><span>History</span></button>
-    <button class="tab-btn focusable" data-tab="menu"><span class="tab-icon">⋮</span><span>Menu</span></button>
-  </nav>
+  <footer id="tabs">
+    <button class="tab-btn focusable active" data-tab="home" id="tab-home" tabindex="-1"><div class="tab-icon">⌂</div><div>Home</div></button>
+    <button class="tab-btn focusable" data-tab="search" id="tab-search" tabindex="-1"><div class="tab-icon">⌕</div><div>Search</div></button>
+    <button class="tab-btn focusable" data-tab="shorts" id="tab-shorts" tabindex="-1"><div class="tab-icon">◫</div><div>Shorts</div></button>
+    <button class="tab-btn focusable" data-tab="history" id="tab-history" tabindex="-1"><div class="tab-icon">↻</div><div>History</div></button>
+    <button class="tab-btn focusable" data-tab="menu" id="tab-menu" tabindex="-1"><div class="tab-icon">⋮</div><div>Menu</div></button>
+  </footer>
 
   <div id="keyboard" class="overlay">
     <div class="keyboard-display" id="kbDisplay"></div>
@@ -122,328 +123,211 @@ body { display:flex; align-items:center; justify-content:center; }
 
   <div id="menuOverlay" class="overlay">
     <div class="menu-list">
-      <div class="menu-item focusable" data-action="home">Home <span>⌂</span></div>
-      <div class="menu-item focusable" data-action="contrast">Contrast <span>◐</span></div>
-      <div class="menu-item focusable" data-action="back">Go back <span>←</span></div>
-      <div class="menu-item focusable" data-action="live">Live <span>●</span></div>
-      <div class="menu-item focusable" data-action="close">Close <span>✕</span></div>
+      <button class="menu-item focusable" data-menu="home" tabindex="-1">Home <span>⌂</span></button>
+      <button class="menu-item focusable" data-menu="contrast" tabindex="-1">Contrast <span>◐</span></button>
+      <button class="menu-item focusable" data-menu="back" tabindex="-1">Go back <span>←</span></button>
+      <button class="menu-item focusable" data-menu="live" tabindex="-1">Live <span>●</span></button>
+      <button class="menu-item focusable" data-menu="close" tabindex="-1">Close <span>✕</span></button>
     </div>
   </div>
 
   <div id="player" class="overlay">
-    <div id="playerFrameWrap"></div>
+    <div id="playerFrameWrap"><div id="ytplayer"></div></div>
     <div id="playerControls">
-      <button class="ctrl-btn focusable" data-ctrl="back">←</button>
-      <button class="ctrl-btn focusable" data-ctrl="rew">«</button>
-      <button class="ctrl-btn big focusable" data-ctrl="play">⏯</button>
-      <button class="ctrl-btn focusable" data-ctrl="ff">»</button>
-      <button class="ctrl-btn focusable" data-ctrl="fs">⛶</button>
+      <button class="ctrl-btn focusable" data-action="back" tabindex="-1">←</button>
+      <button class="ctrl-btn focusable" data-action="rew" tabindex="-1">↞</button>
+      <button class="ctrl-btn focusable big" data-action="play" tabindex="-1">⏸</button>
+      <button class="ctrl-btn focusable" data-action="fwd" tabindex="-1">↠</button>
+      <button class="ctrl-btn focusable" data-action="fs" tabindex="-1">⛶</button>
     </div>
   </div>
 </div>
 
+<script src="https://www.youtube.com/iframe_api"></script>
 <script>
 const API_KEY = 'AIzaSyBWMwaHZgdhuGRM1iZvE9suCwbuyIfyH1g';
-const YT_API = 'https://www.googleapis.com/youtube/v3';
+let currentTab = 'home', previousTab = 'home', lastFocusByScreen = {}, shortsLoaded = false, returnFocus = null, ytPlayer = null, controlsTimer = null, lastQuery = '', ytReady = false;
 
-const app = document.getElementById('app');
-const headerTitle = document.getElementById('headerTitle');
-const clockEl = document.getElementById('clock');
-const screens = { home:q('#home'), search:q('#search'), shorts:q('#shorts'), history:q('#history'), live:q('#live') };
-const grids = { home:q('#homeGrid'), search:q('#searchGrid'), shorts:q('#shortsGrid'), history:q('#historyGrid'), live:q('#liveGrid') };
+function onYouTubeIframeAPIReady(){ ytReady = true; }
+function updateClock(){ document.getElementById('clock').textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
 
-let currentTab = 'home', currentFocus = null, focusHistory = {}, lastSearch = '', player = null, controlsTimer = null, isFullscreen = false, keyboardOpen = false, kbBuffer = '';
-
-function q(s, r=document){ return r.querySelector(s); }
-function qa(s, r=document){ return Array.from(r.querySelectorAll(s)); }
-
-function updateClock(){ const d=new Date(); clockEl.textContent = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
-setInterval(updateClock, 1000); updateClock();
-
-async function ytSearch(params){
-  const url = new URL(YT_API + '/search');
-  url.searchParams.set('part','snippet'); url.searchParams.set('maxResults','20');
-  url.searchParams.set('key', API_KEY); url.searchParams.set('safeSearch','moderate');
-  Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
-  const res = await fetch(url); const data = await res.json();
-  return (data.items||[]).filter(i=>i.id.videoId).map(i=>({ id:i.id.videoId, title:i.snippet.title, channel:i.snippet.channelTitle, thumb:i.snippet.thumbnails.medium?.url || i.snippet.thumbnails.default.url }));
+function getActiveLayer(){
+  const p=document.getElementById('player'); if(p.classList.contains('show')) return p;
+  const k=document.getElementById('keyboard'); if(k.classList.contains('show')) return k;
+  const m=document.getElementById('menuOverlay'); if(m.classList.contains('show')) return m;
+  return document.getElementById('app');
 }
-
-function renderGrid(grid, videos){
-  grid.innerHTML = '';
-  if(!videos.length){ grid.innerHTML = '<div class="empty">No videos found</div>'; return; }
-  videos.forEach(v=>{
-    const card = document.createElement('div');
-    card.className = 'video-card focusable'; card.tabIndex = -1; card.dataset.id = v.id;
-    card.innerHTML = `<div class="thumb-wrap"><img src="${v.thumb}" alt=""></div><div class="info"><div class="title">${escapeHtml(v.title)}</div><div class="channel">${escapeHtml(v.channel)}</div></div>`;
-    card.addEventListener('click', ()=>openPlayer(v));
-    grid.appendChild(card);
+function getFocusables(){
+  const layer=getActiveLayer();
+  return Array.from(layer.querySelectorAll('.focusable')).filter(el=>{
+    const s=window.getComputedStyle(el); return s.display!=='none' && s.visibility!=='hidden' && el.offsetParent!==null;
   });
 }
+function setFocus(el){
+  if(!el) return;
+  const prev=document.querySelector('.focusable.focused'); if(prev) prev.classList.remove('focused');
+  el.classList.add('focused');
+  try{ el.focus({preventScroll:true}); }catch(e){}
+  const scrollParent=el.closest('.scroll-area');
+  if(scrollParent){ const r=el.getBoundingClientRect(), pr=scrollParent.getBoundingClientRect(); if(r.top<pr.top+20 || r.bottom>pr.bottom-20) el.scrollIntoView({block:'nearest', behavior:'smooth'}); }
+  if(currentTab) lastFocusByScreen[currentTab]=el;
+}
+function moveFocus(dir){
+  const items=getFocusables(); if(!items.length) return;
+  let cur=document.querySelector('.focusable.focused'); if(!items.includes(cur)) cur=items[0];
+  const cr=cur.getBoundingClientRect(), cx=cr.left+cr.width/2, cy=cr.top+cr.height/2;
+  let best=null, bestScore=Infinity;
+  for(const el of items){ if(el===cur) continue; const r=el.getBoundingClientRect(), ex=r.left+r.width/2, ey=r.top+r.height/2; let ok=false, primary=0, secondary=0;
+    if(dir==='up' && ey<cy-5){ ok=true; primary=cy-ey; secondary=Math.abs(ex-cx); if(r.right<cr.left||r.left>cr.right) secondary+=1000; }
+    if(dir==='down' && ey>cy+5){ ok=true; primary=ey-cy; secondary=Math.abs(ex-cx); if(r.right<cr.left||r.left>cr.right) secondary+=1000; }
+    if(dir==='left' && ex<cx-5){ ok=true; primary=cx-ex; secondary=Math.abs(ey-cy); if(r.bottom<cr.top||r.top>cr.bottom) secondary+=1000; }
+    if(dir==='right' && ex>cx+5){ ok=true; primary=ex-cx; secondary=Math.abs(ey-cy); if(r.bottom<cr.top||r.top>cr.bottom) secondary+=1000; }
+    if(ok){ const score=primary*1000+secondary; if(score<bestScore){ bestScore=score; best=el; } }
+  }
+  if(!best){ let wrap=-Infinity; for(const el of items){ if(el===cur) continue; const r=el.getBoundingClientRect(); const score=dir==='up'?r.top:dir==='down'?-r.top:dir==='left'?r.left:-r.left; if(score>wrap){wrap=score;best=el;} } }
+  if(best) setFocus(best);
+}
+function activateFocus(){ const el=document.querySelector('.focusable.focused'); if(el) el.click(); }
+function handleBack(){
+  if(document.getElementById('player').classList.contains('show')){ closePlayer(); return true; }
+  if(document.getElementById('keyboard').classList.contains('show')){ hideKeyboard(); return true; }
+  if(document.getElementById('menuOverlay').classList.contains('show')){ closeMenu(); return true; }
+  return false;
+}
 
-function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+async function ytSearch(opts={}){
+  try{
+    const base={part:'snippet',type:'video',key:API_KEY,regionCode:'US',maxResults:20,safeSearch:'moderate'};
+    const params=new URLSearchParams({...base,...opts});
+    const res=await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`);
+    const data=await res.json();
+    return res.ok?data:{items:[]};
+  }catch(e){ return {items:[]}; }
+}
+function mapVideo(item){ return {
+  videoId:item.id?.videoId||item.videoId,
+  title:item.snippet.title,
+  channel:item.snippet.channelTitle,
+  thumbnail:item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url || '',
+  watchedAt:item.watchedAt||Date.now()
+};}
+function renderGrid(container, videos){
+  container.innerHTML='';
+  if(!videos.length){ container.innerHTML='<div class="empty">No videos found</div>'; return; }
+  videos.forEach((v,i)=>{
+    const card=document.createElement('div'); card.className='video-card focusable'; card.tabIndex=-1; card.dataset.videoid=v.videoId;
+    card.innerHTML=`<div class="thumb-wrap"><img src="${v.thumbnail}" alt="" loading="lazy"></div><div class="info"><div class="title">${v.title}</div><div class="channel">${v.channel}</div></div>`;
+    card.addEventListener('click',()=>openPlayer(v));
+    container.appendChild(card);
+  });
+}
 
 async function loadHome(){
-  const grid = grids.home; grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  try{
-    // Fetch latest US videos from all categories using mostPopular chart
-    const url = new URL(YT_API + '/videos');
-    url.searchParams.set('part','snippet');
-    url.searchParams.set('chart','mostPopular');
-    url.searchParams.set('regionCode','US');
-    url.searchParams.set('maxResults','20');
-    url.searchParams.set('key', API_KEY);
-    url.searchParams.set('videoCategoryId','0');
-
-    const res = await fetch(url);
-    const data = await res.json();
-    const vids = (data.items||[]).map(i=>({
-      id:i.id,
-      title:i.snippet.title,
-      channel:i.snippet.channelTitle,
-      thumb:i.snippet.thumbnails.medium?.url || i.snippet.thumbnails.default.url
-    }));
-
-    renderGrid(grid, vids.slice(0,20));
-    setTimeout(()=>focusFirstInGrid('home'), 100);
-  }catch(e){
-    console.error(e);
-    grid.innerHTML = '<div class="empty">Failed to load</div>';
-  }
+  const grid=document.getElementById('homeGrid'); grid.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  const cats=[{q:'US animation',max:3},{q:'free movies full length',max:3},{q:'world news live',max:3},{q:'stand up comedy',max:3},{q:'sports highlights',max:3},{q:'educational documentaries',max:3},{q:'viral videos',max:2}];
+  let all=[];
+  for(const c of cats){ const data=await ytSearch({q:c.q,maxResults:c.max}); if(data.items) all=all.concat(data.items.map(mapVideo)); }
+  renderGrid(grid, all.slice(0,20));
+  setTimeout(()=>{ const f=grid.querySelector('.focusable'); if(f) setFocus(f); },150);
 }
-
 async function loadShorts(){
-  const grid = grids.shorts; grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  try{
-    const vids = await ytSearch({ q:'shorts', videoDuration:'short', type:'video', order:'date', regionCode:'US' });
-    renderGrid(grid, vids); setTimeout(()=>focusFirstInGrid('shorts'),100);
-  }catch(e){ grid.innerHTML = '<div class="empty">Failed</div>'; }
+  const grid=document.getElementById('shortsGrid'); grid.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  const data=await ytSearch({q:'shorts',videoDuration:'short',maxResults:20,order:'date'});
+  renderGrid(grid, (data.items||[]).map(mapVideo));
 }
-
 async function loadLive(){
-  const grid = grids.live; grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  try{
-    const vids = await ytSearch({ eventType:'live', type:'video', order:'viewCount' });
-    renderGrid(grid, vids); setTimeout(()=>focusFirstInGrid('live'),100);
-  }catch(e){ grid.innerHTML = '<div class="empty">Failed</div>'; }
+  const grid=document.getElementById('homeGrid'); grid.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  const data=await ytSearch({eventType:'live',q:'live',maxResults:20,order:'viewCount'});
+  renderGrid(grid, (data.items||[]).map(mapVideo));
+  switchTab('home');
 }
-
 function loadHistory(){
-  const grid = grids.history;
-  const hist = JSON.parse(localStorage.getItem('starrtube_history')||'[]');
-  renderGrid(grid, hist.slice(0,20)); setTimeout(()=>focusFirstInGrid('history'),100);
+  const grid=document.getElementById('historyGrid');
+  try{ const h=JSON.parse(localStorage.getItem('starrtube_history')||'[]'); if(!h.length){ grid.innerHTML='<div class="empty">No history yet</div>'; return; } renderGrid(grid, h); }
+  catch(e){ grid.innerHTML='<div class="empty">No history</div>'; }
+}
+function addToHistory(v){
+  try{ const h=JSON.parse(localStorage.getItem('starrtube_history')||'[]'); const f=h.filter(x=>x.videoId!==v.videoId); f.unshift(v); localStorage.setItem('starrtube_history', JSON.stringify(f.slice(0,50))); }catch(e){}
 }
 
-function saveHistory(video){
-  const hist = JSON.parse(localStorage.getItem('starrtube_history')||'[]');
-  const filtered = hist.filter(h=>h.id!==video.id);
-  filtered.unshift({...video, watchedAt:Date.now()});
-  localStorage.setItem('starrtube_history', JSON.stringify(filtered.slice(0,50)));
+function doSearch(q){
+  lastQuery=q; localStorage.setItem('lastSearch',q);
+  document.getElementById('searchQueryDisplay').textContent=q;
+  document.getElementById('searchPlaceholder').style.display=q?'none':'block';
+  document.getElementById('searchEmpty').style.display='none';
+  const grid=document.getElementById('searchGrid'); grid.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  ytSearch({q,maxResults:20}).then(data=>{ renderGrid(grid,(data.items||[]).map(mapVideo)); setTimeout(()=>{ const f=grid.querySelector('.focusable'); if(f) setFocus(f); },100); });
 }
 
-async function doSearch(query){
-  if(!query) return;
-  lastSearch = query; q('#searchQueryDisplay').textContent = query; q('#searchPlaceholder').style.display='none';
-  const grid = grids.search; grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  try{
-    const vids = await ytSearch({ q:query, type:'video' });
-    renderGrid(grid, vids); setTimeout(()=>focusFirstInGrid('search'),100);
-  }catch(e){ grid.innerHTML = '<div class="empty">Search failed</div>'; }
-}
-
-function openPlayer(video){
-  saveHistory(video);
-  const playerEl = q('#player'); const wrap = q('#playerFrameWrap');
-  wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${video.id}?autoplay=1&enablejsapi=1&playsinline=1&controls=0&modestbranding=1" allow="autoplay; encrypted-media"></iframe>`;
-  playerEl.classList.add('show'); isFullscreen=false; q('#playerControls').classList.remove('hidden');
-  setTimeout(()=>{ focusElement(q('[data-ctrl="play"]')); resetControlsTimer(); }, 200);
-}
-
-function closePlayer(){ q('#player').classList.remove('show'); q('#playerFrameWrap').innerHTML=''; clearTimeout(controlsTimer); focusHistory[currentTab] && focusElement(focusHistory[currentTab]); }
-
-function resetControlsTimer(){ clearTimeout(controlsTimer); q('#playerControls').classList.remove('hidden'); if(isFullscreen){ controlsTimer = setTimeout(()=>q('#playerControls').classList.add('hidden'), 3000); } }
-
-function switchTab(tab){
-  if(tab==='menu'){ openMenu(); return; }
-  if(currentTab===tab) { if(tab==='home')loadHome(); if(tab==='shorts')loadShorts(); if(tab==='history')loadHistory(); return; }
-  focusHistory[currentTab] = currentFocus;
-  qa('.screen').forEach(s=>s.classList.remove('active')); qa('.tab-btn').forEach(b=>b.classList.remove('active'));
-  screens[tab].classList.add('active'); const tabBtn = q(`.tab-btn[data-tab="${tab}"]`); tabBtn.classList.add('active');
-  currentTab = tab; headerTitle.textContent = tab==='home'?'StarrTube':tab.charAt(0).toUpperCase()+tab.slice(1);
-  if(tab==='home' &&!grids.home.children.length) loadHome();
-  if(tab==='shorts' &&!grids.shorts.children.length) loadShorts();
-  if(tab==='history') loadHistory();
-  setTimeout(()=>{
-    const prev = focusHistory[tab];
-    if(prev && document.contains(prev) && prev.closest('.screen')) focusElement(prev);
-    else focusFirstInGrid(tab);
-  }, 50);
-}
-
-function openMenu(){
-  headerTitle.textContent = 'For YouTube'; q('#menuOverlay').classList.add('show');
-  setTimeout(()=>focusElement(q('#menuOverlay.menu-item')), 50);
-}
-function closeMenu(){ q('#menuOverlay').classList.remove('show'); headerTitle.textContent = currentTab==='home'?'StarrTube':currentTab.charAt(0).toUpperCase()+currentTab.slice(1); focusElement(q(`.tab-btn[data-tab="${currentTab}"]`)); }
-
-function openKeyboard(){
-  keyboardOpen=true; kbBuffer=lastSearch; q('#kbDisplay').textContent=kbBuffer; q('#keyboard').classList.add('show');
-  buildKeyboard(); setTimeout(()=>focusElement(q('.key')),50);
-}
-function closeKeyboard(){ keyboardOpen=false; q('#keyboard').classList.remove('show'); focusElement(q('#searchBar')); }
 function buildKeyboard(){
-  const rows = [['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],['Z','X','C','V','B','N','M','⌫'],['BACK','SPACE','ENTER']];
-  const container = q('#kbKeys'); container.innerHTML='';
-  rows.forEach((r, rowIdx)=>{ const row = document.createElement('div'); row.className='kb-row'; row.dataset.row = rowIdx;
-    r.forEach((k, colIdx)=>{ const btn=document.createElement('div'); btn.className='key focusable'; btn.tabIndex=-1; btn.textContent=k; btn.dataset.row = rowIdx; btn.dataset.col = colIdx;
-      if(k==='SPACE')btn.classList.add('extra-wide'); if(k==='ENTER'||k==='⌫'||k==='BACK')btn.classList.add('wide');
-      btn.onclick=()=>handleKey(k); row.appendChild(btn); });
-    container.appendChild(row);
+  const layout=[['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],['Z','X','C','V','B','N','M','⌫'],['SPACE','ENTER','CANCEL']];
+  const wrap=document.getElementById('kbKeys'); wrap.innerHTML='';
+  layout.forEach(row=>{ const r=document.createElement('div'); r.className='kb-row'; row.forEach(k=>{ const b=document.createElement('button'); b.className='key focusable'; if(k==='SPACE'||k==='ENTER'||k==='CANCEL') b.classList.add('extra-wide'); if(k==='⌫') b.classList.add('wide'); b.textContent=k; b.dataset.key=k; b.tabIndex=-1; b.addEventListener('click',()=>handleKey(k)); r.appendChild(b); }); wrap.appendChild(r); });
+}
+function showKeyboard(){ const kb=document.getElementById('keyboard'); kb.classList.add('show'); document.getElementById('kbDisplay').textContent=lastQuery; setTimeout(()=>setFocus(kb.querySelector('.key')),100); }
+function hideKeyboard(){ document.getElementById('keyboard').classList.remove('show'); setFocus(document.getElementById('searchBar')); }
+function handleKey(k){ const d=document.getElementById('kbDisplay'); let q=d.textContent||''; if(k==='⌫') q=q.slice(0,-1); else if(k==='SPACE') q+=' '; else if(k==='ENTER'){ hideKeyboard(); if(q.trim()) doSearch(q.trim()); return; } else if(k==='CANCEL'){ hideKeyboard(); return; } else q+=k.toLowerCase(); d.textContent=q; }
+
+function openPlayer(v){
+  returnFocus=document.querySelector('.focusable.focused');
+  const p=document.getElementById('player'); p.classList.add('show'); addToHistory(v);
+  if(ytPlayer&&ytPlayer.destroy) try{ytPlayer.destroy();}catch(e){}
+  const create=()=>{ ytPlayer=new YT.Player('ytplayer',{videoId:v.videoId,playerVars:{autoplay:1,controls:0,modestbranding:1,rel:0,playsinline:1,enablejsapi:1},events:{onReady:e=>e.target.playVideo()}}); };
+  if(ytReady) create(); else { const chk=setInterval(()=>{ if(ytReady){ clearInterval(chk); create(); } },200); }
+  showControls(); setTimeout(()=>setFocus(document.querySelector('[data-action="play"]')),300);
+}
+function closePlayer(){ const p=document.getElementById('player'); p.classList.remove('show'); if(ytPlayer&&ytPlayer.stopVideo) ytPlayer.stopVideo(); document.getElementById('playerFrameWrap').innerHTML='<div id="ytplayer"></div>'; if(returnFocus) setTimeout(()=>setFocus(returnFocus),100); }
+function showControls(){ const c=document.getElementById('playerControls'); c.classList.remove('hidden'); clearTimeout(controlsTimer); controlsTimer=setTimeout(()=>c.classList.add('hidden'),3000); }
+function togglePlay(){ if(!ytPlayer) return; const btn=document.querySelector('[data-action="play"]'); const st=ytPlayer.getPlayerState(); if(st===1){ ytPlayer.pauseVideo(); btn.textContent='▶'; } else { ytPlayer.playVideo(); btn.textContent='⏸'; } }
+function handleControl(a){ if(a==='back') closePlayer(); else if(a==='rew'&&ytPlayer) ytPlayer.seekTo(Math.max(0,ytPlayer.getCurrentTime()-10),true); else if(a==='fwd'&&ytPlayer) ytPlayer.seekTo(ytPlayer.getCurrentTime()+10,true); else if(a==='play') togglePlay(); else if(a==='fs') document.getElementById('playerControls').classList.toggle('hidden'); showControls(); }
+
+function openMenu(){ previousTab=currentTab; const m=document.getElementById('menuOverlay'); m.classList.add('show'); document.getElementById('headerTitle').textContent='For YouTube'; setTimeout(()=>setFocus(m.querySelector('.focusable')),100); }
+function closeMenu(){ document.getElementById('menuOverlay').classList.remove('show'); document.getElementById('headerTitle').textContent='StarrTube'; setTimeout(()=>setFocus(document.getElementById('tab-'+currentTab)),50); }
+function handleMenu(a){ if(a==='home'){ closeMenu(); switchTab('home'); } else if(a==='contrast'){ toggleContrast(); } else if(a==='back'){ closeMenu(); switchTab(previousTab); } else if(a==='live'){ closeMenu(); loadLive(); } else if(a==='close'){ closeMenu(); } }
+
+function toggleContrast(){ document.body.classList.toggle('high-contrast'); localStorage.setItem('contrast', document.body.classList.contains('high-contrast')?'1':'0'); }
+
+function switchTab(name){
+  if(name==='menu'){ openMenu(); return; }
+  currentTab=name;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  const titles={home:'StarrTube',search:'Search',shorts:'Shorts',history:'History'};
+  document.getElementById('headerTitle').textContent=titles[name]||'StarrTube';
+  if(name==='shorts' &&!shortsLoaded){ shortsLoaded=true; loadShorts(); }
+  if(name==='history') loadHistory();
+  if(name==='home' &&!document.getElementById('homeGrid').children.length) loadHome();
+  setTimeout(()=>{ const last=lastFocusByScreen[name]; setFocus(last || document.querySelector(`#${name}.focusable`) || document.getElementById('tab-'+name)); },80);
+}
+
+function init(){
+  document.querySelectorAll('.focusable').forEach(el=>el.tabIndex=-1);
+  document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
+  document.getElementById('searchBar').addEventListener('click',showKeyboard);
+  document.querySelectorAll('[data-menu]').forEach(m=>m.addEventListener('click',()=>handleMenu(m.dataset.menu)));
+  document.querySelectorAll('#playerControls.ctrl-btn').forEach(b=>b.addEventListener('click',()=>handleControl(b.dataset.action)));
+  buildKeyboard();
+  lastQuery=localStorage.getItem('lastSearch')||''; document.getElementById('searchQueryDisplay').textContent=lastQuery; if(lastQuery) document.getElementById('searchPlaceholder').style.display='none';
+  if(localStorage.getItem('contrast')==='1') document.body.classList.add('high-contrast');
+  updateClock(); setInterval(updateClock,1000);
+  switchTab('home'); loadHome();
+  setTimeout(()=>setFocus(document.getElementById('tab-home')),200);
+
+  window.addEventListener('keydown',e=>{
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter',' '].includes(e.key)) e.preventDefault();
+    if(document.getElementById('player').classList.contains('show')) showControls();
+    switch(e.key){
+      case 'ArrowUp': moveFocus('up'); break;
+      case 'ArrowDown': moveFocus('down'); break;
+      case 'ArrowLeft': moveFocus('left'); break;
+      case 'ArrowRight': moveFocus('right'); break;
+      case 'Enter': case ' ': activateFocus(); break;
+      case 'Backspace': case 'Escape': handleBack(); break;
+    }
   });
 }
-function handleKey(k){
-  if(k==='⌫'){ kbBuffer=kbBuffer.slice(0,-1); }
-  else if(k==='SPACE'){ kbBuffer+=' '; }
-  else if(k==='ENTER'){ closeKeyboard(); doSearch(kbBuffer); return; }
-  else if(k==='BACK'){ closeKeyboard(); return; }
-  else if(k==='123'){ /* toggle numbers - simplified */ }
-  else { kbBuffer+=k; }
-  q('#kbDisplay').textContent=kbBuffer;
-}
-
-function focusElement(el){ if(!el) return; qa('.focused').forEach(e=>e.classList.remove('focused')); el.classList.add('focused'); el.focus(); currentFocus=el; el.scrollIntoView({block:'nearest',inline:'nearest'}); }
-function focusFirstInGrid(tab){ const first = q(`#${tab}.focusable`); if(first) focusElement(first); }
-
-function getFocusable(container){ return qa('.focusable', container).filter(e=>e.offsetParent!==null); }
-
-function moveFocus(dir){
-  const isPlayer = q('#player').classList.contains('show');
-  const isMenu = q('#menuOverlay').classList.contains('show');
-  const tabs = getFocusable(q('#tabs'));
-  const onTabs = tabs.includes(currentFocus);
-
-  const container = keyboardOpen? q('#keyboard') : isPlayer? q('#player') : isMenu? q('#menuOverlay') : onTabs? q('#tabs') : screens[currentTab];
-  const items = getFocusable(container); if(!items.length) return;
-  let idx = items.indexOf(currentFocus); if(idx===-1) idx=0;
-  const cols = container.querySelector('.grid')? 2 : 0;
-
-  // Special handling for keyboard 2D navigation
-  if(keyboardOpen && currentFocus.classList.contains('key')){
-    const row = parseInt(currentFocus.dataset.row);
-    const col = parseInt(currentFocus.dataset.col);
-    const rows = qa('.kb-row', container);
-
-    if(dir==='right'){
-      const rowKeys = getFocusable(rows[row]);
-      const nextCol = (col + 1) % rowKeys.length;
-      focusElement(rowKeys[nextCol]);
-      return;
-    }
-    else if(dir==='left'){
-      const rowKeys = getFocusable(rows[row]);
-      const prevCol = (col - 1 + rowKeys.length) % rowKeys.length;
-      focusElement(rowKeys[prevCol]);
-      return;
-    }
-    else if(dir==='down'){
-      const nextRow = Math.min(row + 1, rows.length - 1);
-      const nextRowKeys = getFocusable(rows[nextRow]);
-      const targetCol = Math.min(col, nextRowKeys.length - 1);
-      focusElement(nextRowKeys[targetCol]);
-      return;
-    }
-    else if(dir==='up'){
-      const prevRow = Math.max(row - 1, 0);
-      const prevRowKeys = getFocusable(rows[prevRow]);
-      const targetCol = Math.min(col, prevRowKeys.length - 1);
-      focusElement(prevRowKeys[targetCol]);
-      return;
-    }
-  }
-
-  if(dir==='right') idx = (idx+1)%items.length;
-  else if(dir==='left') idx = (idx-1+items.length)%items.length;
-  else if(dir==='down'){
-    if(cols){
-      const nextIdx = idx + cols;
-      if(nextIdx < items.length){
-        idx = nextIdx;
-      } else {
-        // At bottom of grid, move to tabs
-        if(!isPlayer &&!isMenu &&!keyboardOpen &&!onTabs){
-          if(tabs.length) { focusElement(tabs[Math.min(idx % 2, tabs.length-1)]); return; }
-        }
-        idx = Math.min(idx+cols, items.length-1);
-      }
-    } else if(onTabs) {
-      // On tabs, down does nothing (already at bottom)
-      return;
-    } else {
-      idx = (idx+1)%items.length;
-    }
-  }
-  else if(dir==='up'){
-    if(cols){
-      const prevIdx = idx - cols;
-      if(prevIdx >= 0){
-        idx = prevIdx;
-      } else {
-        idx = 0;
-      }
-    } else if(onTabs) {
-      // On tabs, up goes to content
-      if(!isPlayer &&!isMenu &&!keyboardOpen){
-        const contentItems = getFocusable(screens[currentTab]);
-        if(contentItems.length){
-          const tabIdx = tabs.indexOf(currentFocus);
-          const lastRowStart = Math.floor((contentItems.length-1)/2)*2;
-          const targetIdx = Math.min(lastRowStart + (tabIdx % 2), contentItems.length-1);
-          focusElement(contentItems[targetIdx]);
-          return;
-        }
-      }
-    } else {
-      idx = (idx-1+items.length)%items.length;
-    }
-  }
-  focusElement(items[idx]);
-}
-
-document.addEventListener('keydown', e=>{
-  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','Escape','Backspace'].includes(e.key)) e.preventDefault();
-  if(e.key==='ArrowUp') moveFocus('up');
-  else if(e.key==='ArrowDown') moveFocus('down');
-  else if(e.key==='ArrowLeft') moveFocus('left');
-  else if(e.key==='ArrowRight') moveFocus('right');
-  else if(e.key==='Enter'){ if(currentFocus) currentFocus.click(); }
-  else if(e.key==='Escape' || e.key==='Backspace'){
-    if(q('#player').classList.contains('show')) closePlayer();
-    else if(keyboardOpen) closeKeyboard();
-    else if(q('#menuOverlay').classList.contains('show')) closeMenu();
-  }
-  if(q('#player').classList.contains('show')) resetControlsTimer();
-});
-
-qa('.tab-btn').forEach(btn=>btn.addEventListener('click', ()=>switchTab(btn.dataset.tab)));
-q('#searchBar').addEventListener('click', openKeyboard);
-qa('#menuOverlay.menu-item').forEach(item=>item.addEventListener('click', ()=>{
-  const a=item.dataset.action;
-  if(a==='home'){ closeMenu(); switchTab('home'); }
-  else if(a==='contrast'){ document.body.classList.toggle('high-contrast'); }
-  else if(a==='back' || a==='close'){ closeMenu(); }
-  else if(a==='live'){ closeMenu(); switchTab('live'); loadLive(); }
-}));
-
-qa('[data-ctrl]').forEach(btn=>btn.addEventListener('click', ()=>{
-  const c=btn.dataset.ctrl;
-  if(c==='back') closePlayer();
-  else if(c==='play'){ const f=q('#playerFrameWrap iframe'); f.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}','*'); }
-  else if(c==='ff' || c==='rew'){ /* seek via API */ }
-  else if(c==='fs'){ isFullscreen=!isFullscreen; resetControlsTimer(); }
-}));
-
-loadHome();
-setTimeout(()=>focusElement(q('.tab-btn[data-tab="home"]')), 300);
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
