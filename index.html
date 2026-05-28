@@ -23,13 +23,12 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 .kb-hint{font-size:9px;color:#0aa;margin-top:2px}
 .kb-grid{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:4px;overflow-y:auto;background:#000;align-content:start}
 .kb-key{background:#222;border:3px solid #555;color:#fff;font-size:20px;font-weight:bold;border-radius:5px;min-height:46px;display:flex;align-items:center;justify-content:center}
-.kb-key:focus{background:#004444;border-color:#0ff;color:#0ff;outline:none;box-shadow:0 0 10px #0ff;transform:scale(1.05);z-index:5}
-.kb-key:active{background:#0ff;color:#000}
+.kb-key:focus{background:#004444;border-color:#0ff;color:#0ff;outline:none;box-shadow:0 0 10px #0ff;transform:scale(1.05)}
 .kb-key.wide{grid-column:span 2;font-size:15px}
 .kb-key.enter{background:#003300;border-color:#0a0;color:#0f0}
-.kb-key.enter:focus{background:#0a0;color:#000;box-shadow:0 0 12px #0f0}
+.kb-key.enter:focus{background:#0a0;color:#000}
 .kb-key.back{background:#330000;border-color:#a00;color:#faa}
-.kb-key.back:focus{background:#a00;color:#fff;box-shadow:0 0 12px #f00}
+.kb-key.back:focus{background:#a00;color:#fff}
 .kb-key.space{grid-column:span 4;font-size:13px;background:#0a0a0a}
 .tabs{display:flex;height:28px;background:#111;border-top:1px solid #333}
 .tab{flex:1;background:#000;border:1px solid #333;color:#666;font-size:8px;font-weight:bold}
@@ -42,6 +41,7 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 .ctrl{flex:1;background:#222;border:none;color:#fff;font-size:13px;font-weight:bold;border-radius:3px}
 .ctrl:active{background:#0ff;color:#000}
 .ctrl.close{background:#500}
+.loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#0ff;font-size:14px;text-align:center}
 </style>
 </head>
 <body>
@@ -50,18 +50,16 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 <div class="content">
   <div class="grid" id="grid"></div>
   <div class="keyboard-area" id="kbArea">
-    <div class="kb-display">
-      <div class="kb-text" id="kbText">_</div>
-      <div class="kb-hint" id="kbHint">Use arrows to move • ENTER to select</div>
-    </div>
+    <div class="kb-display"><div class="kb-text" id="kbText">_</div><div class="kb-hint" id="kbHint">Arrows=move • ENTER=type</div></div>
     <div class="kb-grid" id="kbGrid"></div>
   </div>
 </div>
 <div class="player" id="player">
-  <iframe id="frame" allow="autoplay;fullscreen"></iframe>
+  <div class="loading" id="loading">Loading video...</div>
+  <iframe id="frame" allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>
   <div class="controls">
     <button class="ctrl" id="rew">-10</button>
-    <button class="ctrl" id="play">▶</button>
+    <button class="ctrl" id="play">▶/❚❚</button>
     <button class="ctrl" id="fwd">+10</button>
     <button class="ctrl" id="full">⛶</button>
     <button class="ctrl close" id="close">✕</button>
@@ -78,45 +76,26 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 
 <script>
 const API_KEY='AIzaSyDurH02crJj5sqXrVO2Ts1ecUPviphWDMU';
-let ytPlayer=null, searchQuery='', lastTap=0, lastKey='';
+let ytPlayer=null, searchQuery='', lastTap=0, lastKey='', currentVideoId='';
 
 setInterval(()=>document.getElementById('time').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),1000);
 
 const tag=document.createElement('script');tag.src='https://www.youtube.com/iframe_api';document.head.appendChild(tag);
 
+window.onYouTubeIframeAPIReady=function(){console.log('YT API Ready');};
+
 const kbGrid=document.getElementById('kbGrid');
 const kbText=document.getElementById('kbText');
 const kbHint=document.getElementById('kbHint');
 
-function updateKb(){kbText.textContent=searchQuery||'_';kbText.style.opacity=searchQuery?'1':'0.5';kbHint.textContent=searchQuery?`${searchQuery.length} chars`:'Arrows=move • ENTER=type';}
+function updateKb(){kbText.textContent=searchQuery||'_';kbText.style.opacity=searchQuery?'1':'0.5';}
 
 function createKey(char, display, wide=false, cls=''){
-  const btn=document.createElement('button');
-  btn.className='kb-key'+(wide?' wide':'')+(cls?' '+cls:'');
-  btn.textContent=display||char;
-  btn.type='button';
-  btn.tabIndex=0;
-
-  const action=()=>{
-    const now=Date.now();
-    if(char && char===lastKey && (now-lastTap)<280){kbHint.textContent='⚠ Blocked';setTimeout(updateKb,600);return;}
-    lastKey=char;lastTap=now;
-
-    if(char==='ENTER'){doSearch();return;}
-    if(char==='BACK'){hideKeyboard();showHome();return;}
-    if(char==='DEL'){searchQuery=searchQuery.slice(0,-1);}
-    else if(char==='CLEAR'){searchQuery='';}
-    else if(char){searchQuery+=char.toLowerCase();}
-    updateKb();
-  };
-
-  btn.onclick=action;
-  btn.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();action();}};
-  kbGrid.appendChild(btn);
-  return btn;
+  const btn=document.createElement('button');btn.className='kb-key'+(wide?' wide':'')+(cls?' '+cls:'');btn.textContent=display||char;btn.type='button';btn.tabIndex=0;
+  const action=()=>{const now=Date.now();if(char&&char===lastKey&&(now-lastTap)<280){kbHint.textContent='⚠ Blocked';setTimeout(updateKb,600);return;}lastKey=char;lastTap=now;if(char==='ENTER'){doSearch();return;}if(char==='BACK'){hideKeyboard();showHome();return;}if(char==='DEL'){searchQuery=searchQuery.slice(0,-1);}else if(char==='CLEAR'){searchQuery='';}else if(char){searchQuery+=char.toLowerCase();}updateKb();};
+  btn.onclick=action;btn.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();action();}};kbGrid.appendChild(btn);return btn;
 }
 
-// Build keyboard
 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(c=>createKey(c));
 createKey(' ', 'SPACE', true, 'space');
 createKey('DEL', 'DELETE', true);
@@ -124,107 +103,83 @@ createKey('CLEAR', 'CLEAR', true);
 createKey('BACK', '← BACK', true, 'back');
 createKey('ENTER', 'SEARCH ↵', true, 'enter');
 
-function showKeyboard(){
-  document.getElementById('kbArea').classList.add('show');
-  document.getElementById('searchDisplay').classList.remove('show');
-  searchQuery='';updateKb();
-  setTimeout(()=>kbGrid.querySelector('button').focus(),50);
-}
+function showKeyboard(){document.getElementById('kbArea').classList.add('show');document.getElementById('searchDisplay').classList.remove('show');searchQuery='';updateKb();setTimeout(()=>kbGrid.querySelector('button').focus(),50);}
 function hideKeyboard(){document.getElementById('kbArea').classList.remove('show');}
 
 async function loadVideos(q){
-  const grid=document.getElementById('grid');
-  grid.innerHTML='<div style="grid-column:1/-1;padding:20px;text-align:center;color:#555;font-size:10px">Loading...</div>';
-  hideKeyboard();
-  try{
-    const res=await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=${API_KEY}&maxResults=20&regionCode=US&videoEmbeddable=true&q=${encodeURIComponent(q)}`);
-    const data=await res.json();grid.innerHTML='';
-    data.items.forEach(v=>{
-      const c=document.createElement('div');c.className='card';c.tabIndex=0;
-      c.innerHTML=`<img src="${v.snippet.thumbnails.medium.url}"><div class="card-title">${v.snippet.title}</div>`;
-      c.onclick=()=>playVideo(v.id.videoId);c.onkeydown=e=>{if(e.key==='Enter')playVideo(v.id.videoId);};
-      grid.appendChild(c);
+  const grid=document.getElementById('grid');grid.innerHTML='<div style="grid-column:1/-1;padding:20px;text-align:center;color:#555;font-size:10px">Loading...</div>';hideKeyboard();
+  try{const res=await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=${API_KEY}&maxResults=20&regionCode=US&videoEmbeddable=true&q=${encodeURIComponent(q)}`);const data=await res.json();grid.innerHTML='';data.items.forEach(v=>{const c=document.createElement('div');c.className='card';c.tabIndex=0;c.innerHTML=`<img src="${v.snippet.thumbnails.medium.url}"><div class="card-title">${v.snippet.title}</div>`;c.onclick=()=>playVideo(v.id.videoId);c.onkeydown=e=>{if(e.key==='Enter')playVideo(v.id.videoId);};grid.appendChild(c);});grid.firstChild?.focus();}catch(e){grid.innerHTML='<div style="color:#f66;padding:20px">Error</div>';}
+}
+
+function playVideo(videoId){
+  currentVideoId=videoId;
+  const player=document.getElementById('player');
+  const loading=document.getElementById('loading');
+  const frame=document.getElementById('frame');
+
+  player.classList.add('show');
+  loading.style.display='block';
+  loading.textContent='Loading video...';
+
+  // Destroy old player
+  if(ytPlayer){try{ytPlayer.destroy();}catch(e){} ytPlayer=null;}
+
+  // Wait for API
+  const initPlayer=()=>{
+    if(typeof YT==='undefined'||!YT.Player){setTimeout(initPlayer,100);return;}
+
+    ytPlayer=new YT.Player('frame',{
+      videoId:videoId,
+      playerVars:{
+        autoplay:1,
+        controls:0,
+        modestbranding:1,
+        playsinline:1,
+        rel:0,
+        enablejsapi:1,
+        origin:window.location.origin,
+        iv_load_policy:3
+      },
+      events:{
+        onReady:(e)=>{
+          loading.style.display='none';
+          console.log('Player ready');
+          try{e.target.playVideo();}catch(err){console.log('Play error:',err);}
+        },
+        onStateChange:(e)=>{
+          const playBtn=document.getElementById('play');
+          if(e.data===1){playBtn.textContent='❚❚';loading.style.display='none';}
+          else if(e.data===2){playBtn.textContent='▶';}
+          else if(e.data===0){playBtn.textContent='▶';}
+        },
+        onError:(e)=>{
+          loading.textContent='Error loading video (Code:'+e.data+')';
+          console.log('YT Error:',e.data);
+        }
+      }
     });
-    grid.firstChild?.focus();
-  }catch(e){grid.innerHTML='<div style="color:#f66;padding:20px">Error</div>';}
+  };
+
+  initPlayer();
+
+  document.getElementById('play').onclick=()=>{if(!ytPlayer)return;ytPlayer.getPlayerState()===1?ytPlayer.pauseVideo():ytPlayer.playVideo();};
+  document.getElementById('rew').onclick=()=>{if(!ytPlayer)return;ytPlayer.seekTo(Math.max(0,ytPlayer.getCurrentTime()-10),true);};
+  document.getElementById('fwd').onclick=()=>{if(!ytPlayer)return;ytPlayer.seekTo(ytPlayer.getCurrentTime()+10,true);};
+  document.getElementById('close').onclick=()=>{player.classList.remove('show');if(ytPlayer){try{ytPlayer.stopVideo();ytPlayer.destroy();}catch(e){}ytPlayer=null;}};
+  document.getElementById('full').onclick=()=>document.fullscreenElement?document.exitFullscreen():player.requestFullscreen();
 }
 
-function playVideo(id){
-  const p=document.getElementById('player');p.classList.add('show');
-  if(ytPlayer)ytPlayer.destroy();
-  ytPlayer=new YT.Player('frame',{videoId:id,playerVars:{autoplay:1,controls:0,playsinline:1}});
-  document.getElementById('play').onclick=()=>ytPlayer.getPlayerState()===1?ytPlayer.pauseVideo():ytPlayer.playVideo();
-  document.getElementById('rew').onclick=()=>ytPlayer.seekTo(ytPlayer.getCurrentTime()-10,1);
-  document.getElementById('fwd').onclick=()=>ytPlayer.seekTo(ytPlayer.getCurrentTime()+10,1);
-  document.getElementById('close').onclick=()=>{p.classList.remove('show');ytPlayer.stopVideo();};
-  document.getElementById('full').onclick=()=>document.fullscreenElement?document.exitFullscreen():p.requestFullscreen();
-}
-
-function doSearch(){
-  const q=searchQuery.trim();if(!q){kbHint.textContent='Type first!';setTimeout(updateKb,800);return;}
-  document.getElementById('searchText').textContent=q;
-  document.getElementById('searchDisplay').classList.add('show');
-  hideKeyboard();loadVideos(q);searchQuery='';
-}
-
+function doSearch(){const q=searchQuery.trim();if(!q){kbHint.textContent='Type first!';setTimeout(updateKb,800);return;}document.getElementById('searchText').textContent=q;document.getElementById('searchDisplay').classList.add('show');hideKeyboard();loadVideos(q);searchQuery='';}
 function showHome(){document.getElementById('searchDisplay').classList.remove('show');loadVideos('trending');}
 
-document.querySelectorAll('.tab').forEach((t,i)=>{
-  t.onclick=()=>{
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
-    const qs=['trending','', 'news','sports','music','live'];
-    if(i===1)showKeyboard();else{hideKeyboard();document.getElementById('searchDisplay').classList.remove('show');loadVideos(qs[i]);}
-  };
-});
+document.querySelectorAll('.tab').forEach((t,i)=>{t.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');const qs=['trending','','news','sports','music','live'];if(i===1)showKeyboard();else{hideKeyboard();document.getElementById('searchDisplay').classList.remove('show');loadVideos(qs[i]);}};});
 
-// ARROW KEY NAVIGATION
 document.addEventListener('keydown',e=>{
-  if(document.getElementById('player').classList.contains('show'))return;
-
-  const f=document.activeElement;
-  const isKb=f.classList.contains('kb-key');
-  const isCard=f.classList.contains('card');
-  const isTab=f.classList.contains('tab');
-
+  if(document.getElementById('player').classList.contains('show')){if(e.key==='Escape'){e.preventDefault();document.getElementById('close').click();}return;}
+  const f=document.activeElement;const isKb=f.classList.contains('kb-key');const isCard=f.classList.contains('card');const isTab=f.classList.contains('tab');
   if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
-
-  if(isKb){
-    e.preventDefault();
-    const keys=[...kbGrid.querySelectorAll('button')];
-    const idx=keys.indexOf(f);
-    const cols=4;
-    let next=null;
-
-    if(e.key==='ArrowRight' && keys[idx+1])next=keys[idx+1];
-    else if(e.key==='ArrowLeft' && idx>0)next=keys[idx-1];
-    else if(e.key==='ArrowDown' && keys[idx+cols])next=keys[idx+cols];
-    else if(e.key==='ArrowUp' && keys[idx-cols])next=keys[idx-cols];
-
-    if(next)next.focus();
-    return;
-  }
-
-  if(isCard||isTab){
-    e.preventDefault();
-    const cards=[...document.getElementById('grid').querySelectorAll('.card')];
-    const tabs=[...document.querySelectorAll('.tab')];
-    const ci=cards.indexOf(f),ti=tabs.indexOf(f);
-
-    if(e.key==='ArrowRight'){
-      if(ci>=0&&ci%2===0&&cards[ci+1])cards[ci+1].focus();
-      else if(ti>=0&&ti<5)tabs[ti+1].focus();
-    }
-    if(e.key==='ArrowLeft'){
-      if(ci>=0&&ci%2===1)cards[ci-1].focus();
-      else if(ti>0)tabs[ti-1].focus();
-    }
-    if(e.key==='ArrowDown'){
-      if(ci>=0&&cards[ci+2])cards[ci+2].focus();
-      else if(ci>=0)tabs[0].focus();
-      else if(ti>=0)cards[0]?.focus();
-    }
-    if(e.key==='ArrowUp'&&ci>=2)cards[ci-2].focus();
-  }
+  if(isKb){e.preventDefault();const keys=[...kbGrid.querySelectorAll('button')];const idx=keys.indexOf(f);const cols=4;let next=null;if(e.key==='ArrowRight'&&keys[idx+1])next=keys[idx+1];else if(e.key==='ArrowLeft'&&idx>0)next=keys[idx-1];else if(e.key==='ArrowDown'&&keys[idx+cols])next=keys[idx+cols];else if(e.key==='ArrowUp'&&keys[idx-cols])next=keys[idx-cols];if(next)next.focus();return;}
+  if(isCard||isTab){e.preventDefault();const cards=[...document.getElementById('grid').querySelectorAll('.card')];const tabs=[...document.querySelectorAll('.tab')];const ci=cards.indexOf(f),ti=tabs.indexOf(f);if(e.key==='ArrowRight'){if(ci>=0&&ci%2===0&&cards[ci+1])cards[ci+1].focus();else if(ti>=0&&ti<5)tabs[ti+1].focus();}if(e.key==='ArrowLeft'){if(ci>=0&&ci%2===1)cards[ci-1].focus();else if(ti>0)tabs[ti-1].focus();}if(e.key==='ArrowDown'){if(ci>=0&&cards[ci+2])cards[ci+2].focus();else if(ci>=0)tabs[0].focus();else if(ti>=0)cards[0]?.focus();}if(e.key==='ArrowUp'&&ci>=2)cards[ci-2].focus();}
 });
 
 showHome();updateKb();
