@@ -3,169 +3,102 @@
 <head>
 <meta name="viewport" content="width=600,height=600,user-scalable=no">
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:#000;color:#0ff;font-family:Arial,sans-serif;width:600px;height:600px;display:flex;flex-direction:column;overflow:hidden}
-.header{height:28px;background:#111;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;border-bottom:2px solid #0ff;flex-shrink:0}
-.display{background:#001a1a;padding:10px;text-align:center;border-bottom:2px solid #0ff;flex-shrink:0}
-.display-main{font-size:28px;color:#0ff;min-height:34px;font-weight:bold;letter-spacing:1px;font-family:'Courier New',monospace}
-.display-sub{font-size:10px;color:#0aa;margin-top:3px}
-.keyboard-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#000}
-.keyboard-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px}
-.keyboard-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding-bottom:4px}
-.key{background:#1a1a1a;border:2px solid #444;color:#fff;font-size:22px;font-weight:bold;border-radius:6px;display:flex;align-items:center;justify-content:center;min-height:52px;user-select:none;-webkit-user-select:none}
-.key:active{background:#0ff;color:#000;border-color:#0ff;transform:scale(0.94)}
-.key.pressed{background:#0aa!important;color:#000!important}
-.action-bar{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:#000;border-top:3px solid #0ff;flex-shrink:0}
-.action-btn{height:56px;font-size:18px;font-weight:bold;border:3px solid;border-radius:8px;display:flex;align-items:center;justify-content:center}
-.action-btn.enter{background:#002200;border-color:#0f0;color:#0f0}
-.action-btn.enter:active{background:#0f0;color:#000}
-.action-btn.back{background:#220000;border-color:#f00;color:#f88}
-.action-btn.back:active{background:#f00;color:#fff}
-.action-btn.clear{background:#111;border-color:#666;color:#aaa;font-size:14px}
-.action-btn.clear:active{background:#666;color:#000}
+.header{height:26px;background:#111;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;border-bottom:2px solid #0ff}
+.display{background:#001a1a;padding:8px;text-align:center;border-bottom:2px solid #0ff}
+.display-main{font-size:26px;color:#0ff;min-height:30px;font-weight:bold;font-family:'Courier New',monospace}
+.display-sub{font-size:9px;color:#0aa;margin-top:2px}
+.wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.scroll{flex:1;overflow-y:auto;padding:3px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+.key{background:#222;border:2px solid #555;color:#fff;font-size:20px;font-weight:bold;border-radius:5px;height:48px;width:100%}
+.key:active{background:#0ff;color:#000}
+.bar{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;background:#000;border-top:2px solid #0ff}
+.btn{height:50px;font-size:16px;font-weight:bold;border:2px solid;border-radius:5px}
+.btn.enter{background:#020;border-color:#0f0;color:#0f0;grid-column:span 2}
+.btn.back{background:#200;border-color:#f00;color:#f88}
+.btn.clear{background:#111;border-color:#666;color:#aaa}
 </style>
 </head>
 <body>
-<div class="header">TAP LETTERS - NO DOUBLE INPUT</div>
-
+<div class="header">SIMPLE BUTTONS - TAP TO TYPE</div>
 <div class="display">
-  <div class="display-main" id="main">_</div>
-  <div class="display-sub" id="sub">Tap letters below</div>
+  <div class="display-main" id="out">_</div>
+  <div class="display-sub" id="hint">Ready</div>
 </div>
-
-<div class="keyboard-wrap">
-  <div class="keyboard-scroll">
-    <div class="keyboard-grid" id="grid"></div>
+<div class="wrap">
+  <div class="scroll">
+    <div class="grid" id="keys"></div>
   </div>
-  
-  <div class="action-bar">
-    <button class="action-btn clear" id="btnClear">CLEAR</button>
-    <button class="action-btn back" id="btnBack">← BACK</button>
-    <button class="action-btn enter" id="btnEnter" style="grid-column:span 2">SEARCH ↵</button>
+  <div class="bar">
+    <button class="btn clear" id="clr">CLEAR</button>
+    <button class="btn back" id="back">BACK</button>
+    <button class="btn enter" id="enter">SEARCH</button>
   </div>
 </div>
 
 <script>
-let text = '';
-let lastPress = 0;
-let lastKey = '';
+let txt = '';
+let lastTime = 0;
+let lastChar = '';
 
-const main = document.getElementById('main');
-const sub = document.getElementById('sub');
-const grid = document.getElementById('grid');
+const out = document.getElementById('out');
+const hint = document.getElementById('hint');
+const keys = document.getElementById('keys');
 
-function updateDisplay() {
-  main.textContent = text || '_';
-  main.style.opacity = text ? '1' : '0.4';
-  sub.textContent = text ? `${text.length} characters` : 'Tap letters below';
+function update() {
+  out.textContent = txt || '_';
+  hint.textContent = txt ? txt : 'Tap letters';
 }
 
-function handleKeyPress(key, element) {
-  const now = Date.now();
-  const timeDiff = now - lastPress;
+// Create buttons - SIMPLE
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(c => {
+  const b = document.createElement('button');
+  b.className = 'key';
+  b.textContent = c;
+  b.type = 'button';
   
-  if (key === lastKey && timeDiff < 300) {
-    sub.textContent = '⚠ Blocked double-tap';
-    setTimeout(updateDisplay, 800);
-    return false;
-  }
-  
-  lastPress = now;
-  lastKey = key;
-  element.classList.add('pressed');
-  setTimeout(() => element.classList.remove('pressed'), 150);
-  return true;
-}
-
-'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
-  const btn = document.createElement('div');
-  btn.className = 'key';
-  btn.textContent = letter;
-  btn.dataset.key = letter;
-  
-  let pointerDown = false;
-  
-  btn.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    pointerDown = true;
-  }, {passive: false});
-  
-  btn.addEventListener('pointerup', (e) => {
-    e.preventDefault();
-    if (!pointerDown) return;
-    pointerDown = false;
-    
-    if (handleKeyPress(letter, btn)) {
-      text += letter.toLowerCase();
-      updateDisplay();
+  b.onclick = function() {
+    const now = Date.now();
+    // Block double tap
+    if (c === lastChar && (now - lastTime) < 250) {
+      hint.textContent = 'Blocked double';
+      setTimeout(update, 500);
+      return;
     }
-  }, {passive: false});
+    lastChar = c;
+    lastTime = now;
+    
+    txt += c.toLowerCase();
+    update();
+    
+    // Flash
+    b.style.background = '#0ff';
+    setTimeout(() => b.style.background = '', 100);
+  };
   
-  btn.addEventListener('pointercancel', () => {
-    pointerDown = false;
-  });
-  
-  btn.addEventListener('contextmenu', e => e.preventDefault());
-  grid.appendChild(btn);
+  keys.appendChild(b);
 });
 
-const space = document.createElement('div');
-space.className = 'key';
-space.textContent = 'SPACE';
-space.style.gridColumn = 'span 4';
-space.style.fontSize = '16px';
-space.style.background = '#0a0a0a';
-let spaceDown = false;
-space.addEventListener('pointerdown', e => { e.preventDefault(); spaceDown = true; });
-space.addEventListener('pointerup', e => {
-  e.preventDefault();
-  if (!spaceDown) return;
-  spaceDown = false;
-  if (handleKeyPress('SPACE', space)) {
-    text += ' ';
-    updateDisplay();
-  }
-});
-grid.appendChild(space);
+// Space
+const sp = document.createElement('button');
+sp.className = 'key';
+sp.textContent = 'SPACE';
+sp.style.gridColumn = 'span 4';
+sp.style.fontSize = '14px';
+sp.onclick = () => { txt += ' '; update(); };
+keys.appendChild(sp);
 
-document.getElementById('btnClear').onclick = () => {
-  text = '';
-  updateDisplay();
-  sub.textContent = 'Cleared!';
-  setTimeout(updateDisplay, 600);
+// Buttons
+document.getElementById('clr').onclick = () => { txt = ''; update(); };
+document.getElementById('back').onclick = () => { alert('BACK'); };
+document.getElementById('enter').onclick = () => { 
+  if(txt) alert('SEARCH: ' + txt);
+  else hint.textContent = 'Type first';
 };
 
-document.getElementById('btnBack').onclick = () => {
-  sub.textContent = 'BACK pressed';
-  alert('BACK button works!');
-};
-
-document.getElementById('btnEnter').onclick = () => {
-  if (!text.trim()) {
-    sub.textContent = 'Type something first!';
-    setTimeout(updateDisplay, 1000);
-    return;
-  }
-  sub.textContent = 'SEARCHING: ' + text;
-  alert('SEARCH: ' + text);
-};
-
-updateDisplay();
-
-document.addEventListener('touchstart', function(e) {
-  if (e.touches.length > 1) {
-    e.preventDefault();
-  }
-}, {passive: false});
-
-let lastTouchEnd = 0;
-document.addEventListener('touchend', function(e) {
-  const now = Date.now();
-  if (now - lastTouchEnd <= 300) {
-    e.preventDefault();
-  }
-  lastTouchEnd = now;
-}, false);
+update();
 </script>
 </body>
 </html>
