@@ -22,8 +22,9 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 .kb-key.active{background:#0ff;color:#000;border-color:#0ff}
 .kb-key.wide{grid-column:span 2;font-size:14px}
 .tabs{display:flex;height:32px;background:#111;border-top:1px solid #333}
-.tab{flex:1;background:#000;border:none;color:#888;font-size:10px;font-weight:bold;border-right:1px solid #333}
+.tab{flex:1;background:#000;border:none;color:#888;font-size:10px;font-weight:bold;border-right:1px solid #333;position:relative}
 .tab.active{background:#033;color:#0ff}
+.tab.focus{outline:2px solid #0ff;outline-offset:-2px;z-index:5}
 .player{position:fixed;inset:0;background:#000;display:none;z-index:100}
 .player.show{display:block}
 .back{position:absolute;top:10px;left:10px;z-index:101;background:#f00;color:#fff;border:2px solid #fff;padding:8px 18px;font-weight:bold;border-radius:6px;font-size:14px}
@@ -53,36 +54,45 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 
 <script>
 const KEYS=['AIzaSyCxebesMswpVAubt4VhfpBP0IloB7B-6AE','AIzaSyDurH02crJj5sqXrVO2Ts1ecUPviphWDMU'];
-let keyIdx=0, cur=0, cards=[], searchTxt='', kbIdx=0;
+let keyIdx=0, curCard=0, curTab=0, focusMode='cards', cards=[], searchTxt='', kbIdx=0;
 
 setInterval(()=>document.getElementById('t').textContent=new Date().toLocaleTimeString(),1000);
 
-function setActive(i){document.querySelectorAll('.card').forEach(c=>c.classList.remove('active'));if(cards[i]){cards[i].classList.add('active');cards[i].scrollIntoView({block:'nearest'});cur=i;}}
-function setKbActive(i){document.querySelectorAll('.kb-key').forEach(k=>k.classList.remove('active'));const keys=document.querySelectorAll('.kb-key');if(keys[i]){keys[i].classList.add('active');kbIdx=i;}}
+function setCardActive(i){
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('active'));
+  if(cards[i]){cards[i].classList.add('active');cards[i].scrollIntoView({block:'nearest'});curCard=i;focusMode='cards';}
+}
+function setTabFocus(i){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('focus'));
+  const tabs=document.querySelectorAll('.tab');
+  if(tabs[i]){tabs[i].classList.add('focus');curTab=i;focusMode='tabs';}
+}
+function setKbActive(i){
+  document.querySelectorAll('.kb-key').forEach(k=>k.classList.remove('active'));
+  const keys=document.querySelectorAll('.kb-key');
+  if(keys[i]){keys[i].classList.add('active');kbIdx=i;focusMode='keyboard';}
+}
 
 // Build keyboard
 const kg=document.getElementById('kg'),kt=document.getElementById('kt');
 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(c=>{const k=document.createElement('div');k.className='kb-key';k.textContent=c;k.onclick=()=>{searchTxt+=c;kt.textContent=searchTxt||'_';};kg.appendChild(k);});
-[{t:'SPACE',v:' '},{t:'DEL',v:'del'},{t:'CLEAR',v:'clr'},{t:'BACK',v:'back',w:1},{t:'SEARCH',v:'go',w:1}].forEach(({t,v,w})=>{const k=document.createElement('div');k.className='kb-key'+(w?' wide':'');k.textContent=t;k.onclick=()=>{if(v==='go'&&searchTxt){document.getElementById('kb').classList.remove('show');load('search',searchTxt);searchTxt='';kt.textContent='_';}else if(v==='back'){document.getElementById('kb').classList.remove('show');}else if(v==='del'){searchTxt=searchTxt.slice(0,-1);kt.textContent=searchTxt||'_';}else if(v==='clr'){searchTxt='';kt.textContent='_';}else{searchTxt+=v;kt.textContent=searchTxt;}};kg.appendChild(k);});
+[{t:'SPACE',v:' '},{t:'DEL',v:'del'},{t:'CLEAR',v:'clr'},{t:'BACK',v:'back',w:1},{t:'SEARCH',v:'go',w:1}].forEach(({t,v,w})=>{const k=document.createElement('div');k.className='kb-key'+(w?' wide':'');k.textContent=t;k.onclick=()=>{if(v==='go'&&searchTxt){document.getElementById('kb').classList.remove('show');load('search',searchTxt);searchTxt='';kt.textContent='_';}else if(v==='back'){document.getElementById('kb').classList.remove('show');setTabFocus(1);}else if(v==='del'){searchTxt=searchTxt.slice(0,-1);kt.textContent=searchTxt||'_';}else if(v==='clr'){searchTxt='';kt.textContent='_';}else{searchTxt+=v;kt.textContent=searchTxt;}};kg.appendChild(k);});
 
 async function load(tab,q){
   const grid=document.getElementById('g');
   grid.innerHTML='<div class="msg">Loading...</div>';
-  cards=[];cur=0;
+  cards=[];curCard=0;focusMode='cards';
 
   const queries={home:'trending US',news:'breaking news US',sports:'sports highlights',music:'top music',live:'live stream',search:q||''};
   const key=KEYS[keyIdx];
   let url=`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=14&type=video&q=${encodeURIComponent(queries[tab])}&key=${key}&regionCode=US`;
-
-  if(tab==='live')url+='&eventType=live&order=viewCount';
-  else url+='&order=date';
+  if(tab==='live')url+='&eventType=live&order=viewCount';else url+='&order=date';
 
   try{
     const r=await fetch(url);
     const d=await r.json();
     if(d.error)throw new Error(d.error.message);
     if(!d.items?.length)throw new Error('No results');
-
     grid.innerHTML='';
     d.items.forEach(v=>{
       const c=document.createElement('div');
@@ -92,45 +102,68 @@ async function load(tab,q){
       grid.appendChild(c);
       cards.push(c);
     });
-    setActive(0);
+    setCardActive(0);
   }catch(e){
     if(keyIdx===0){keyIdx=1;grid.innerHTML=`<div class="error">Key 1 failed, trying backup...</div>`;setTimeout(()=>load(tab,q),800);return;}
-    grid.innerHTML=`<div class="error">Error: ${e.message}<br><small>Using demo mode</small></div>`;
-    for(let i=0;i<8;i++){const c=document.createElement('div');c.className='card';c.innerHTML=`<img src="https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg"><div class="card-title">Demo ${i+1}</div>`;c.onclick=()=>play('dQw4w9WgXcQ');grid.appendChild(c);cards.push(c);}setActive(0);
+    grid.innerHTML=`<div class="error">Error: ${e.message}</div>`;
+    for(let i=0;i<8;i++){const c=document.createElement('div');c.className='card';c.innerHTML=`<img src="https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg"><div class="card-title">Demo ${i+1}</div>`;c.onclick=()=>play('dQw4w9WgXcQ');grid.appendChild(c);cards.push(c);}setCardActive(0);
   }
 }
 
 function play(id){document.getElementById('p').classList.add('show');document.getElementById('f').src=`https://www.youtube.com/embed/${id}?autoplay=1`;}
-document.getElementById('b').onclick=()=>{document.getElementById('p').classList.remove('show');document.getElementById('f').src='';};
+document.getElementById('b').onclick=()=>{document.getElementById('p').classList.remove('show');document.getElementById('f').src='';setTimeout(()=>setCardActive(curCard),100);};
 
-document.querySelectorAll('.tab').forEach(tab=>{
-  tab.onclick=()=>{
+document.querySelectorAll('.tab').forEach((tab,i)=>{
+  tab.onclick=(e)=>{
+    e.stopPropagation();
     document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
     tab.classList.add('active');
+    curTab=i;
     const t=tab.dataset.tab;
     if(t==='search'){document.getElementById('kb').classList.add('show');searchTxt='';kt.textContent='_';setKbActive(0);}
     else{document.getElementById('kb').classList.remove('show');load(t);}
   };
 });
 
-// Navigation
+// FIXED NAVIGATION - separates tabs, cards, and keyboard
 document.addEventListener('keydown',e=>{
   if(document.getElementById('p').classList.contains('show')){if(['Escape','Backspace'].includes(e.key))document.getElementById('b').click();return;}
+
   const kbOpen=document.getElementById('kb').classList.contains('show');
-  if(kbOpen){
+  const tabs=document.querySelectorAll('.tab');
+
+  // Keyboard mode
+  if(kbOpen&&focusMode==='keyboard'){
     const keys=document.querySelectorAll('.kb-key');
-    if(e.key==='ArrowRight'&&kbIdx<keys.length-1)setKbActive(kbIdx+1);
-    else if(e.key==='ArrowLeft'&&kbIdx>0)setKbActive(kbIdx-1);
-    else if(e.key==='ArrowDown'&&kbIdx+5<keys.length)setKbActive(kbIdx+5);
-    else if(e.key==='ArrowUp'&&kbIdx>=5)setKbActive(kbIdx-5);
-    else if(e.key==='Enter')keys[kbIdx].click();
+    if(e.key==='ArrowRight'&&kbIdx<keys.length-1){e.preventDefault();setKbActive(kbIdx+1);}
+    else if(e.key==='ArrowLeft'&&kbIdx>0){e.preventDefault();setKbActive(kbIdx-1);}
+    else if(e.key==='ArrowDown'&&kbIdx+5<keys.length){e.preventDefault();setKbActive(kbIdx+5);}
+    else if(e.key==='ArrowUp'&&kbIdx>=5){e.preventDefault();setKbActive(kbIdx-5);}
+    else if(e.key==='Enter'){e.preventDefault();keys[kbIdx].click();}
     return;
   }
-  if(e.key==='ArrowRight'&&cur%2===0&&cards[cur+1])setActive(cur+1);
-  else if(e.key==='ArrowLeft'&&cur%2===1)setActive(cur-1);
-  else if(e.key==='ArrowDown'&&cards[cur+2])setActive(cur+2);
-  else if(e.key==='ArrowUp'&&cur>=2)setActive(cur-2);
-  else if(e.key==='Enter'&&cards[cur])cards[cur].click();
+
+  // Tab navigation mode
+  if(focusMode==='tabs'){
+    if(e.key==='ArrowRight'&&curTab<5){e.preventDefault();setTabFocus(curTab+1);}
+    else if(e.key==='ArrowLeft'&&curTab>0){e.preventDefault();setTabFocus(curTab-1);}
+    else if(e.key==='ArrowUp'&&cards.length){e.preventDefault();setCardActive(Math.min(curCard,cards.length-1));}
+    else if(e.key==='Enter'){e.preventDefault();tabs[curTab].click();}
+    return;
+  }
+
+  // Card navigation mode
+  if(focusMode==='cards'){
+    if(e.key==='ArrowRight'&&curCard%2===0&&cards[curCard+1]){e.preventDefault();setCardActive(curCard+1);}
+    else if(e.key==='ArrowLeft'&&curCard%2===1){e.preventDefault();setCardActive(curCard-1);}
+    else if(e.key==='ArrowDown'){
+      e.preventDefault();
+      if(cards[curCard+2])setCardActive(curCard+2);
+      else{setTabFocus(curTab);} // Move to tabs
+    }
+    else if(e.key==='ArrowUp'&&curCard>=2){e.preventDefault();setCardActive(curCard-2);}
+    else if(e.key==='Enter'&&cards[curCard]){e.preventDefault();cards[curCard].click();}
+  }
 });
 
 load('home');
