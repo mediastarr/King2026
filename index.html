@@ -3,81 +3,74 @@
 <head>
 <meta name="viewport" content="width=600,height=600,user-scalable=no">
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;margin:0;padding:0}
 body{background:#000;color:#fff;font-family:Arial,sans-serif;width:600px;height:600px;overflow:hidden;display:flex;flex-direction:column}
 .top{height:22px;background:#111;display:flex;align-items:center;justify-content:space-between;padding:0 4px;font-size:9px;font-weight:bold;border-bottom:1px solid #333}
-
-/* SEARCH DISPLAY - MADE HUGE AND ALWAYS VISIBLE */
 .search-area{background:#000a1a;border-bottom:3px solid #0ff;display:none;flex-direction:column}
 .search-area.show{display:flex}
-.search-input-box{background:#001122;border:2px solid #0aa;margin:4px;padding:8px;border-radius:4px}
-.search-label{font-size:9px;color:#0aa;margin-bottom:3px;text-transform:uppercase;letter-spacing:1px}
-.search-text{font-size:28px;color:#0ff;font-family:'Courier New',monospace;min-height:34px;font-weight:bold;letter-spacing:1px;word-break:break-all;line-height:1}
-.search-text.empty{color:#044;font-style:italic}
-.search-hint{font-size:8px;color:#555;text-align:center;padding:2px}
-
+.search-input-box{background:#001122;border:2px solid #0aa;margin:3px;padding:6px;border-radius:3px}
+.search-label{font-size:8px;color:#0aa;margin-bottom:2px}
+.search-text{font-size:26px;color:#0ff;font-family:'Courier New',monospace;min-height:30px;font-weight:bold;letter-spacing:1px}
+.search-text.empty{color:#044}
 .grid{flex:1;overflow:auto;padding:2px;display:grid;grid-template-columns:1fr 1fr;gap:2px;align-content:start;background:#000}
 .card{background:#111;border:2px solid #333;padding:2px}
-.card:focus{border-color:#0ff;outline:none}
-.card img{width:100%;height:58px;object-fit:cover;display:block;background:#000}
-.card div{font-size:8px;height:17px;overflow:hidden;line-height:1}
-
-.tabs{display:flex;height:28px;background:#111;border-top:1px solid #333}
+.card:focus{border-color:#0ff;outline:none;background:#002020}
+.card img{width:100%;height:56px;object-fit:cover;display:block;background:#000}
+.card div{font-size:8px;height:16px;overflow:hidden}
+.tabs{display:flex;height:26px;background:#111;border-top:1px solid #333}
 .tab{flex:1;background:#000;border:1px solid #333;color:#666;font-size:7px;font-weight:bold}
 .tab.active{background:#002020;color:#0ff;border-color:#0ff}
-
-/* KEYBOARD - BIGGER */
-.keyboard{background:#000;padding:3px;display:none;grid-template-columns:repeat(5,1fr);gap:3px;border-top:2px solid #0ff;max-height:200px;overflow:auto}
+.tab:focus{outline:1px solid #0ff}
+.keyboard{background:#000;padding:3px;display:none;grid-template-columns:repeat(5,1fr);gap:2px;border-top:2px solid #0ff;max-height:185px;overflow:auto}
 .keyboard.show{display:grid}
-.key{background:#1a1a1a;border:2px solid #444;color:#fff;height:44px;font-size:18px;font-weight:bold;border-radius:5px;display:flex;align-items:center;justify-content:center;user-select:none}
-.key:active{background:#0ff;color:#000;border-color:#0ff;transform:scale(0.93)}
-.key.wide{grid-column:span 2;font-size:14px}
+.key{background:#1a1a1a;border:2px solid #444;color:#fff;height:38px;font-size:16px;font-weight:bold;border-radius:4px;display:flex;align-items:center;justify-content:center}
+.key:focus{background:#004444;border-color:#0ff;color:#0ff;outline:none;box-shadow:0 0 8px #0ff}
+.key:active{background:#0ff;color:#000}
+.key.wide{grid-column:span 2;font-size:13px}
 .key.go{background:#003333;border-color:#0aa;color:#0ff}
+.key.go:focus{background:#006666;box-shadow:0 0 10px #0ff}
 .key.back{background:#331111;border-color:#a33;color:#faa}
+.key.back:focus{background:#662222;box-shadow:0 0 8px #f66}
 .key.del{background:#222;border-color:#666}
-
 .player{position:fixed;inset:0;background:#000;display:none;flex-direction:column;z-index:999}
 .player.show{display:flex}
 .player iframe{flex:1;border:0}
-.controls{height:36px;background:#111;display:flex;gap:2px;padding:2px;border-top:1px solid #333}
-.btn{flex:1;background:#222;border:none;color:#fff;font-size:13px;font-weight:bold;border-radius:3px}
-.btn:active{background:#0ff;color:#000}
+.controls{height:32px;background:#111;display:flex;gap:2px;padding:2px;border-top:1px solid #333}
+.btn{flex:1;background:#222;border:none;color:#fff;font-size:12px;font-weight:bold;border-radius:3px}
+.btn:focus{background:#0ff;color:#000;outline:none}
 </style>
 </head>
 <body>
 <div class="top"><div>▶ STARRTUBE</div><div id="clk"></div></div>
 
-<!-- SEARCH AREA - NOW WITH BACK BUTTON -->
 <div class="search-area" id="sa">
   <div class="search-input-box">
-    <div class="search-label">You are typing:</div>
+    <div class="search-label">TYPING:</div>
     <div class="search-text empty" id="st">_</div>
   </div>
-  <div class="search-hint">Tap letters below • Tap SEARCH to go • Tap BACK to cancel</div>
 </div>
 
 <div class="grid" id="grid"></div>
-
 <div class="keyboard" id="kb"></div>
 
 <div class="player" id="pl">
   <iframe id="fr" allow="autoplay;fullscreen"></iframe>
   <div class="controls">
-    <button class="btn" id="b10">-10s</button>
+    <button class="btn" id="b10">-10</button>
     <button class="btn" id="pp">▶/❚❚</button>
-    <button class="btn" id="f10">+10s</button>
+    <button class="btn" id="f10">+10</button>
     <button class="btn" id="fs">⛶</button>
-    <button class="btn" id="cl" style="background:#500">✕</button>
+    <button class="btn" id="cl" style="background:#500">X</button>
   </div>
 </div>
 
 <div class="tabs">
-  <button class="tab active">HOME</button>
-  <button class="tab">SEARCH</button>
-  <button class="tab">NEWS</button>
-  <button class="tab">SPORTS</button>
-  <button class="tab">GAME</button>
-  <button class="tab">LIVE</button>
+  <button class="tab active" tabindex="0">HOME</button>
+  <button class="tab" tabindex="0">SEARCH</button>
+  <button class="tab" tabindex="0">NEWS</button>
+  <button class="tab" tabindex="0">SPORTS</button>
+  <button class="tab" tabindex="0">GAME</button>
+  <button class="tab" tabindex="0">LIVE</button>
 </div>
 
 <script>
@@ -85,107 +78,94 @@ const KEY='AIzaSyDurH02crJj5sqXrVO2Ts1ecUPviphWDMU';
 let YT, query='', lastTap=0;
 setInterval(()=>clk.textContent=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
 
-// UPDATE SEARCH DISPLAY - SIMPLIFIED
 function updateSearch(){
   const el = document.getElementById('st');
-  if(query.length === 0){
-    el.textContent = 'Tap letters below...';
-    el.className = 'search-text empty';
-  } else {
-    el.textContent = query;
-    el.className = 'search-text';
-  }
-  console.log('Search updated:', query); // Debug
+  el.textContent = query || 'Use arrows to select letters, press ENTER';
+  el.className = query? 'search-text' : 'search-text empty';
 }
 
-// BUILD KEYBOARD
+// BUILD KEYBOARD WITH TABINDEX FOR NAVIGATION
 const kb = document.getElementById('kb');
 const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-letters.split('').forEach(l => {
+letters.split('').forEach((l,i) => {
   const k = document.createElement('button');
   k.className = 'key';
   k.textContent = l;
   k.type = 'button';
-  k.onclick = function(e){
-    e.preventDefault();
-    const now = Date.now();
-    if(now - lastTap < 120) return;
-    lastTap = now;
-    query += l.toLowerCase();
-    updateSearch();
-    // Visual feedback
-    k.style.background = '#0ff';
-    k.style.color = '#000';
-    setTimeout(()=>{k.style.background='';k.style.color='';},120);
-  };
+  k.tabIndex = 0;
+  k.dataset.letter = l.toLowerCase();
+  k.onclick = () => addLetter(l.toLowerCase());
   kb.appendChild(k);
 });
 
-// ACTION KEYS WITH BACK BUTTON
+function addLetter(l){
+  const now = Date.now();
+  if(now - lastTap < 100) return;
+  lastTap = now;
+  query += l;
+  updateSearch();
+}
+
+// ACTION KEYS - NOW WITH CLEAR LABELS AND TABINDEX
 const actions = [
-  {t:'SPACE', a:()=>{query+=' '; updateSearch();}},
-  {t:'DEL', a:()=>{query=query.slice(0,-1); updateSearch();}, c:'del'},
-  {t:'BACK', a:()=>{cancelSearch();}, c:'back'}, // NEW BACK BUTTON
-  {t:'SEARCH', a:()=>{doSearch();}, c:'go'}
+  {t:'SPACE', a:()=>{query+=' ';updateSearch();}, c:''},
+  {t:'DELETE', a:()=>{query=query.slice(0,-1);updateSearch();}, c:'del'},
+  {t:'← BACK', a:()=>{cancelSearch();}, c:'back'}, // CLEAR BACK BUTTON
+  {t:'ENTER ↵', a:()=>{doSearch();}, c:'go'} // CLEAR ENTER BUTTON
 ];
 
 actions.forEach(({t,a,c}) => {
   const k = document.createElement('button');
-  k.className = 'key wide ' + (c||'');
+  k.className = 'key wide ' + c;
   k.textContent = t;
   k.type = 'button';
-  k.onclick = function(e){ e.preventDefault(); a(); };
+  k.tabIndex = 0;
+  k.onclick = a;
   kb.appendChild(k);
 });
 
-// YouTube API
 const s = document.createElement('script');
 s.src = 'https://www.youtube.com/iframe_api';
 document.head.appendChild(s);
 
 async function load(q){
-  grid.innerHTML = '<div style="grid-column:1/-1;padding:15px;text-align:center;color:#444;font-size:10px">Loading videos...</div>';
+  grid.innerHTML = '<div style="grid-column:1/-1;padding:10px;text-align:center;color:#444;font-size:9px">Loading...</div>';
   sa.classList.remove('show');
   kb.classList.remove('show');
-
   try{
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=${KEY}&maxResults=18&regionCode=US&videoDuration=medium&videoEmbeddable=true&q=${encodeURIComponent(q)}`;
-    const r = await fetch(url);
+    const r = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=${KEY}&maxResults:18&regionCode=US&videoDuration=medium&videoEmbeddable=true&q=${encodeURIComponent(q)}`);
     const d = await r.json();
     grid.innerHTML = '';
-    d.items.forEach(v => {
+    d.items.forEach((v,i) => {
       const c = document.createElement('div');
       c.className = 'card';
       c.tabIndex = 0;
       c.innerHTML = `<img src="${v.snippet.thumbnails.medium.url}"><div>${v.snippet.title}</div>`;
       c.onclick = () => play(v.id.videoId);
+      c.onkeydown = e => { if(e.key==='Enter'){ e.preventDefault(); play(v.id.videoId); } };
       grid.appendChild(c);
+      if(i===0) setTimeout(()=>c.focus(), 30);
     });
-    if(grid.firstChild) grid.firstChild.focus();
   }catch(e){
-    grid.innerHTML = '<div style="color:#f44;padding:20px">Error loading</div>';
+    grid.innerHTML = '<div style="color:#f44;padding:10px">Error</div>';
   }
 }
 
 function play(id){
   pl.classList.add('show');
   if(YT) YT.destroy();
-  YT = new YT.Player('fr', {
-    videoId: id,
-    playerVars: {autoplay:1, controls:0, playsinline:1, modestbranding:1}
-  });
+  YT = new YT.Player('fr', {videoId:id, playerVars:{autoplay:1, controls:0, playsinline:1}});
   pp.onclick = () => YT.getPlayerState()===1? YT.pauseVideo() : YT.playVideo();
   b10.onclick = () => YT.seekTo(YT.getCurrentTime()-10, true);
   f10.onclick = () => YT.seekTo(YT.getCurrentTime()+10, true);
-  cl.onclick = () => { pl.classList.remove('show'); YT.destroy(); };
+  cl.onclick = () => { pl.classList.remove('show'); YT.destroy(); document.querySelector('.card')?.focus(); };
   fs.onclick = () => document.fullscreenElement? document.exitFullscreen() : pl.requestFullscreen();
 }
 
 function doSearch(){
   const q = query.trim();
   if(!q) return;
-  // HIDE KEYBOARD AFTER SEARCH
   query = '';
   updateSearch();
   sa.classList.remove('show');
@@ -194,7 +174,6 @@ function doSearch(){
 }
 
 function cancelSearch(){
-  // BACK BUTTON FUNCTION
   query = '';
   updateSearch();
   sa.classList.remove('show');
@@ -209,30 +188,65 @@ document.querySelectorAll('.tab').forEach((t,i) => {
   t.onclick = () => {
     document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
     t.classList.add('active');
-
-    if(i === 0){
-      sa.classList.remove('show');
-      kb.classList.remove('show');
-      load('trending');
-    } else if(i === 1){
-      query = '';
-      updateSearch();
-      sa.classList.add('show');
-      kb.classList.add('show');
-      grid.innerHTML = '';
-    } else if(i === 2){
-      sa.classList.remove('show'); kb.classList.remove('show'); load('news');
-    } else if(i === 3){
-      sa.classList.remove('show'); kb.classList.remove('show'); load('sports');
-    } else if(i === 4){
-      sa.classList.remove('show'); kb.classList.remove('show'); load('gaming');
-    } else {
-      sa.classList.remove('show'); kb.classList.remove('show'); load('live');
-    }
+    if(i===0){ sa.classList.remove('show'); kb.classList.remove('show'); load('trending'); }
+    else if(i===1){ query=''; updateSearch(); sa.classList.add('show'); kb.classList.add('show'); grid.innerHTML=''; setTimeout(()=>kb.querySelector('button').focus(), 50); }
+    else{ sa.classList.remove('show'); kb.classList.remove('show'); load(['news','sports','gaming','live'][i-2]); }
   };
+  t.onkeydown = e => { if(e.key==='Enter'){ e.preventDefault(); t.click(); } };
 });
 
-// Start
+// ARROW KEY NAVIGATION FOR KEYBOARD
+document.addEventListener('keydown', e => {
+  if(pl.classList.contains('show')){
+    if(e.key==='Escape'){ e.preventDefault(); cl.click(); }
+    return;
+  }
+
+  const f = document.activeElement;
+  const isKey = f.classList.contains('key');
+  const isCard = f.classList.contains('card');
+  const isTab = f.classList.contains('tab');
+
+  if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter'].includes(e.key)) return;
+
+  if(isKey){
+    e.preventDefault();
+    const keys = [...kb.querySelectorAll('.key')];
+    const idx = keys.indexOf(f);
+    const cols = 5;
+
+    if(e.key === 'ArrowRight' && keys[idx+1]) keys[idx+1].focus();
+    else if(e.key === 'ArrowLeft' && idx > 0) keys[idx-1].focus();
+    else if(e.key === 'ArrowDown' && keys[idx+cols]) keys[idx+cols].focus();
+    else if(e.key === 'ArrowUp' && keys[idx-cols]) keys[idx-cols].focus();
+    else if(e.key === 'Enter') f.click();
+    return;
+  }
+
+  if(isCard || isTab){
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+    const cards = [...grid.querySelectorAll('.card')];
+    const tabs = [...document.querySelectorAll('.tab')];
+    const ci = cards.indexOf(f), ti = tabs.indexOf(f);
+
+    if(e.key==='ArrowRight'){
+      if(ci>=0 && ci%2===0 && cards[ci+1]) cards[ci+1].focus();
+      else if(ti>=0 && ti<5) tabs[ti+1].focus();
+    }
+    if(e.key==='ArrowLeft'){
+      if(ci>=0 && ci%2===1) cards[ci-1].focus();
+      else if(ti>0) tabs[ti-1].focus();
+    }
+    if(e.key==='ArrowDown'){
+      if(ci>=0 && cards[ci+2]) cards[ci+2].focus();
+      else if(ci>=0) tabs[0].focus();
+      else if(ti>=0) cards[0]?.focus();
+    }
+    if(e.key==='ArrowUp' && ci>=2) cards[ci-2].focus();
+    if(e.key==='Enter' && (isCard||isTab)) f.click();
+  }
+});
+
 load('trending');
 updateSearch();
 </script>
