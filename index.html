@@ -7,11 +7,20 @@
 body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;display:flex;flex-direction:column;overflow:hidden}
 .header{height:28px;background:#111;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:11px;border-bottom:1px solid #333}
 .header span:first-child{color:#0ff;font-weight:bold}
+.main{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column}
 .grid{flex:1;overflow-y:auto;padding:5px;display:grid;grid-template-columns:1fr 1fr;gap:5px;background:#000;align-content:start}
 .card{background:#222;border:3px solid #444;border-radius:6px;padding:4px;cursor:pointer}
 .card.active{border-color:#0ff;background:#033;box-shadow:0 0 10px #0ff}
 .card img{width:100%;height:65px;object-fit:cover;background:#111;border-radius:3px;display:block}
 .card-title{font-size:10px;margin-top:3px;height:24px;overflow:hidden;line-height:1.2}
+.keyboard{position:absolute;inset:0;background:#000;display:none;flex-direction:column;z-index:20;padding:10px}
+.keyboard.show{display:flex}
+.kb-display{background:#011;padding:12px;text-align:center;border:2px solid #0ff;border-radius:6px;margin-bottom:10px}
+.kb-text{font-size:26px;color:#0ff;font-family:monospace;min-height:30px}
+.kb-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;flex:1;align-content:start;overflow-y:auto}
+.kb-key{background:#222;border:2px solid #555;color:#fff;font-size:18px;font-weight:bold;border-radius:5px;height:48px;display:flex;align-items:center;justify-content:center}
+.kb-key.active{background:#0ff;color:#000;border-color:#0ff}
+.kb-key.wide{grid-column:span 2;font-size:14px}
 .tabs{display:flex;height:32px;background:#111;border-top:1px solid #333}
 .tab{flex:1;background:#000;border:none;color:#888;font-size:10px;font-weight:bold;border-right:1px solid #333}
 .tab.active{background:#033;color:#0ff}
@@ -20,124 +29,111 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 .back{position:absolute;top:10px;left:10px;z-index:101;background:#f00;color:#fff;border:2px solid #fff;padding:8px 18px;font-weight:bold;border-radius:6px;font-size:14px}
 .player iframe{width:100%;height:100%;border:0}
 .msg{grid-column:1/-1;text-align:center;padding:40px 20px;color:#0ff}
-.error{color:#f66;background:#200;border:1px solid #f00;padding:15px;margin:10px;border-radius:5px;grid-column:1/-1}
+.error{color:#f66;background:#200;border:1px solid #f00;padding:15px;margin:10px;border-radius:5px;grid-column:1/-1;font-size:11px}
 </style>
 </head>
 <body>
 <div class="header"><span>▶ STARRTUBE</span><span id="t"></span></div>
-<div class="grid" id="g"></div>
+<div class="main">
+  <div class="grid" id="g"></div>
+  <div class="keyboard" id="kb">
+    <div class="kb-display"><div class="kb-text" id="kt">_</div></div>
+    <div class="kb-grid" id="kg"></div>
+  </div>
+</div>
 <div class="player" id="p"><button class="back" id="b">◀ BACK</button><iframe id="f" allowfullscreen allow="autoplay"></iframe></div>
 <div class="tabs">
-  <button class="tab active" data-q="trending">HOME</button>
-  <button class="tab" data-q="news">NEWS</button>
-  <button class="tab" data-q="sports">SPORTS</button>
-  <button class="tab" data-q="music">MUSIC</button>
-  <button class="tab" data-q="gaming">GAMES</button>
-  <button class="tab" data-q="movies">MOVIES</button>
+  <button class="tab active" data-tab="home">HOME</button>
+  <button class="tab" data-tab="search">SEARCH</button>
+  <button class="tab" data-tab="news">NEWS</button>
+  <button class="tab" data-tab="sports">SPORTS</button>
+  <button class="tab" data-tab="music">MUSIC</button>
+  <button class="tab" data-tab="live">LIVE</button>
 </div>
 
 <script>
 const KEYS=['AIzaSyCxebesMswpVAubt4VhfpBP0IloB7B-6AE','AIzaSyDurH02crJj5sqXrVO2Ts1ecUPviphWDMU'];
-let keyIndex=0, currentCard=0, cards=[];
+let keyIdx=0, cur=0, cards=[], searchTxt='', kbIdx=0;
 
 setInterval(()=>document.getElementById('t').textContent=new Date().toLocaleTimeString(),1000);
 
-function setActive(idx){
-  document.querySelectorAll('.card').forEach(c=>c.classList.remove('active'));
-  if(cards[idx]){cards[idx].classList.add('active');cards[idx].scrollIntoView({block:'nearest'});currentCard=idx;}
-}
+function setActive(i){document.querySelectorAll('.card').forEach(c=>c.classList.remove('active'));if(cards[i]){cards[i].classList.add('active');cards[i].scrollIntoView({block:'nearest'});cur=i;}}
+function setKbActive(i){document.querySelectorAll('.kb-key').forEach(k=>k.classList.remove('active'));const keys=document.querySelectorAll('.kb-key');if(keys[i]){keys[i].classList.add('active');kbIdx=i;}}
 
-async function load(q){
+// Build keyboard
+const kg=document.getElementById('kg'),kt=document.getElementById('kt');
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(c=>{const k=document.createElement('div');k.className='kb-key';k.textContent=c;k.onclick=()=>{searchTxt+=c;kt.textContent=searchTxt||'_';};kg.appendChild(k);});
+[{t:'SPACE',v:' '},{t:'DEL',v:'del'},{t:'CLEAR',v:'clr'},{t:'BACK',v:'back',w:1},{t:'SEARCH',v:'go',w:1}].forEach(({t,v,w})=>{const k=document.createElement('div');k.className='kb-key'+(w?' wide':'');k.textContent=t;k.onclick=()=>{if(v==='go'&&searchTxt){document.getElementById('kb').classList.remove('show');load('search',searchTxt);searchTxt='';kt.textContent='_';}else if(v==='back'){document.getElementById('kb').classList.remove('show');}else if(v==='del'){searchTxt=searchTxt.slice(0,-1);kt.textContent=searchTxt||'_';}else if(v==='clr'){searchTxt='';kt.textContent='_';}else{searchTxt+=v;kt.textContent=searchTxt;}};kg.appendChild(k);});
+
+async function load(tab,q){
   const grid=document.getElementById('g');
   grid.innerHTML='<div class="msg">Loading...</div>';
-  cards=[];currentCard=0;
+  cards=[];cur=0;
 
-  const apiKey=KEYS[keyIndex];
-  const url=`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=12&type=video&q=${encodeURIComponent(q)}&key=${apiKey}&regionCode=US`;
+  const queries={home:'trending US',news:'breaking news US',sports:'sports highlights',music:'top music',live:'live stream',search:q||''};
+  const key=KEYS[keyIdx];
+  let url=`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=14&type=video&q=${encodeURIComponent(queries[tab])}&key=${key}&regionCode=US`;
+
+  if(tab==='live')url+='&eventType=live&order=viewCount';
+  else url+='&order=date';
 
   try{
-    const res=await fetch(url);
-    const data=await res.json();
-
-    if(data.error){
-      throw new Error(data.error.message);
-    }
-
-    if(!data.items||data.items.length===0){
-      throw new Error('No videos found');
-    }
+    const r=await fetch(url);
+    const d=await r.json();
+    if(d.error)throw new Error(d.error.message);
+    if(!d.items?.length)throw new Error('No results');
 
     grid.innerHTML='';
-    data.items.forEach((v,i)=>{
-      const card=document.createElement('div');
-      card.className='card';
-      card.innerHTML=`<img src="${v.snippet.thumbnails.medium.url}" loading="lazy"><div class="card-title">${v.snippet.title}</div>`;
-      card.onclick=()=>play(v.id.videoId);
-      grid.appendChild(card);
-      cards.push(card);
+    d.items.forEach(v=>{
+      const c=document.createElement('div');
+      c.className='card';
+      c.innerHTML=`<img src="${v.snippet.thumbnails.medium.url}"><div class="card-title">${v.snippet.title}</div>`;
+      c.onclick=()=>play(v.id.videoId);
+      grid.appendChild(c);
+      cards.push(c);
     });
-
     setActive(0);
-
-  }catch(err){
-    console.error(err);
-
-    // Try fallback key
-    if(keyIndex===0){
-      keyIndex=1;
-      grid.innerHTML=`<div class="error">New key failed: ${err.message}<br><br>Trying backup key...</div>`;
-      setTimeout(()=>load(q),1000);
-      return;
-    }
-
-    // Both keys failed - show test data
-    grid.innerHTML=`<div class="error">API Error: ${err.message}<br><small>Both keys failed. Showing demo.</small></div>`;
-    for(let i=0;i<8;i++){
-      const card=document.createElement('div');
-      card.className='card';
-      card.innerHTML=`<img src="https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg"><div class="card-title">Demo Video ${i+1} - API needs YouTube Data API enabled</div>`;
-      card.onclick=()=>play('dQw4w9WgXcQ');
-      grid.appendChild(card);
-      cards.push(card);
-    }
-    setActive(0);
+  }catch(e){
+    if(keyIdx===0){keyIdx=1;grid.innerHTML=`<div class="error">Key 1 failed, trying backup...</div>`;setTimeout(()=>load(tab,q),800);return;}
+    grid.innerHTML=`<div class="error">Error: ${e.message}<br><small>Using demo mode</small></div>`;
+    for(let i=0;i<8;i++){const c=document.createElement('div');c.className='card';c.innerHTML=`<img src="https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg"><div class="card-title">Demo ${i+1}</div>`;c.onclick=()=>play('dQw4w9WgXcQ');grid.appendChild(c);cards.push(c);}setActive(0);
   }
 }
 
-function play(id){
-  document.getElementById('p').classList.add('show');
-  document.getElementById('f').src=`https://www.youtube.com/embed/${id}?autoplay=1`;
-}
-
-document.getElementById('b').onclick=()=>{
-  document.getElementById('p').classList.remove('show');
-  document.getElementById('f').src='';
-};
+function play(id){document.getElementById('p').classList.add('show');document.getElementById('f').src=`https://www.youtube.com/embed/${id}?autoplay=1`;}
+document.getElementById('b').onclick=()=>{document.getElementById('p').classList.remove('show');document.getElementById('f').src='';};
 
 document.querySelectorAll('.tab').forEach(tab=>{
   tab.onclick=()=>{
     document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
     tab.classList.add('active');
-    load(tab.dataset.q);
+    const t=tab.dataset.tab;
+    if(t==='search'){document.getElementById('kb').classList.add('show');searchTxt='';kt.textContent='_';setKbActive(0);}
+    else{document.getElementById('kb').classList.remove('show');load(t);}
   };
 });
 
-// Keyboard navigation
+// Navigation
 document.addEventListener('keydown',e=>{
-  if(document.getElementById('p').classList.contains('show')){
-    if(e.key==='Escape'||e.key==='Backspace'){document.getElementById('b').click();}
+  if(document.getElementById('p').classList.contains('show')){if(['Escape','Backspace'].includes(e.key))document.getElementById('b').click();return;}
+  const kbOpen=document.getElementById('kb').classList.contains('show');
+  if(kbOpen){
+    const keys=document.querySelectorAll('.kb-key');
+    if(e.key==='ArrowRight'&&kbIdx<keys.length-1)setKbActive(kbIdx+1);
+    else if(e.key==='ArrowLeft'&&kbIdx>0)setKbActive(kbIdx-1);
+    else if(e.key==='ArrowDown'&&kbIdx+5<keys.length)setKbActive(kbIdx+5);
+    else if(e.key==='ArrowUp'&&kbIdx>=5)setKbActive(kbIdx-5);
+    else if(e.key==='Enter')keys[kbIdx].click();
     return;
   }
-
-  if(e.key==='ArrowRight'&&currentCard%2===0&&cards[currentCard+1])setActive(currentCard+1);
-  else if(e.key==='ArrowLeft'&&currentCard%2===1)setActive(currentCard-1);
-  else if(e.key==='ArrowDown'&&cards[currentCard+2])setActive(currentCard+2);
-  else if(e.key==='ArrowUp'&&currentCard>=2)setActive(currentCard-2);
-  else if(e.key==='Enter'&&cards[currentCard])cards[currentCard].click();
+  if(e.key==='ArrowRight'&&cur%2===0&&cards[cur+1])setActive(cur+1);
+  else if(e.key==='ArrowLeft'&&cur%2===1)setActive(cur-1);
+  else if(e.key==='ArrowDown'&&cards[cur+2])setActive(cur+2);
+  else if(e.key==='ArrowUp'&&cur>=2)setActive(cur-2);
+  else if(e.key==='Enter'&&cards[cur])cards[cur].click();
 });
 
-// Start
-load('trending');
+load('home');
 </script>
 </body>
 </html>
