@@ -73,12 +73,22 @@ async function load(tab,q){
   const grid=document.getElementById('g');
   grid.innerHTML='<div class="msg">Loading...</div>';
   cards=[];curCard=0;focusMode='cards';updateKeyStatus();
+
   const counts={home:35,search:30,news:25,sports:20,music:35,live:25};
-  const queries={home:'trending US viral',news:'breaking news US today',sports:'NFL NBA MLB highlights US',music:'top hits Billboard 2024',live:'live now',search:q||''};
+  // Updated home query to avoid shorts
+  const queries={home:'trending popular',news:'breaking news US today',sports:'NFL NBA MLB highlights US',music:'top hits Billboard 2024',live:'live now',search:q||''};
+
   const key=KEYS[keyIdx];
   const maxResults=counts[tab];
   let url=`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${maxResults}&type=video&q=${encodeURIComponent(queries[tab])}&key=${key}&regionCode=US`;
+
+  // Filter out shorts for home, news, sports, music - get longer videos
+  if(tab==='home' || tab==='news' || tab==='sports' || tab==='music'){
+    url+='&videoDuration=medium'; // 4-20 minutes - excludes Shorts
+  }
+
   if(tab==='live')url+='&eventType=live&order=viewCount';else url+='&order=date&publishedAfter='+new Date(Date.now()-14*24*60*60*1000).toISOString();
+
   try{
     const r=await fetch(url);
     const d=await r.json();
@@ -140,15 +150,7 @@ document.addEventListener('keydown',e=>{
     if(e.key==='ArrowRight'&&curCard%2===0&&cards[curCard+1]){e.preventDefault();setCardActive(curCard+1);}
     else if(e.key==='ArrowLeft'&&curCard%2===1){e.preventDefault();setCardActive(curCard-1);}
     else if(e.key==='ArrowDown'){e.preventDefault();if(cards[curCard+2])setCardActive(curCard+2);else setTabFocus(curTab);}
-    else if(e.key==='ArrowUp'){
-      e.preventDefault();
-      if(curCard<2){
-        // ALWAYS go to HOME tab (index 0) when pressing UP from top row
-        setTabFocus(0);
-      }else{
-        setCardActive(curCard-2);
-      }
-    }
+    else if(e.key==='ArrowUp'){e.preventDefault();if(curCard<2){setTabFocus(0);}else{setCardActive(curCard-2);}}
     else if(e.key==='Enter'&&cards[curCard]){e.preventDefault();cards[curCard].click();}
   }
 });
