@@ -3,43 +3,57 @@
 <head>
 <meta name="viewport" content="width=600,height=600,user-scalable=no">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:#000;color:#fff;font-family:Arial,sans-serif;width:600px;height:600px;overflow:hidden;display:flex;flex-direction:column}
-.top{height:24px;background:#111;display:flex;align-items:center;justify-content:space-between;padding:0 5px;font-size:10px;font-weight:bold;border-bottom:2px solid #333}
-.search-box{background:#001a1a;border:2px solid #0ff;padding:8px;display:none}
-.search-box.show{display:block}
-.search-label{font-size:10px;color:#0aa;margin-bottom:3px}
-.search-text{font-size:24px;color:#0ff;font-family:'Courier New',monospace;min-height:30px;letter-spacing:2px;font-weight:bold}
+.top{height:22px;background:#111;display:flex;align-items:center;justify-content:space-between;padding:0 4px;font-size:9px;font-weight:bold;border-bottom:1px solid #333}
+
+/* SEARCH DISPLAY - MADE HUGE AND ALWAYS VISIBLE */
+.search-area{background:#000a1a;border-bottom:3px solid #0ff;display:none;flex-direction:column}
+.search-area.show{display:flex}
+.search-input-box{background:#001122;border:2px solid #0aa;margin:4px;padding:8px;border-radius:4px}
+.search-label{font-size:9px;color:#0aa;margin-bottom:3px;text-transform:uppercase;letter-spacing:1px}
+.search-text{font-size:28px;color:#0ff;font-family:'Courier New',monospace;min-height:34px;font-weight:bold;letter-spacing:1px;word-break:break-all;line-height:1}
+.search-text.empty{color:#044;font-style:italic}
+.search-hint{font-size:8px;color:#555;text-align:center;padding:2px}
+
 .grid{flex:1;overflow:auto;padding:2px;display:grid;grid-template-columns:1fr 1fr;gap:2px;align-content:start;background:#000}
 .card{background:#111;border:2px solid #333;padding:2px}
 .card:focus{border-color:#0ff;outline:none}
-.card img{width:100%;height:60px;object-fit:cover;display:block;background:#000}
-.card div{font-size:8px;height:18px;overflow:hidden;line-height:1.1;padding-top:1px}
-.tabs{display:flex;height:30px;background:#111;border-top:2px solid #333}
-.tab{flex:1;background:#000;border:1px solid #333;color:#666;font-size:8px;font-weight:bold}
-.tab.active{background:#002222;color:#0ff;border-color:#0ff}
-.keyboard{background:#000;padding:4px;display:none;grid-template-columns:repeat(5,1fr);gap:4px;border-top:3px solid #0ff}
+.card img{width:100%;height:58px;object-fit:cover;display:block;background:#000}
+.card div{font-size:8px;height:17px;overflow:hidden;line-height:1}
+
+.tabs{display:flex;height:28px;background:#111;border-top:1px solid #333}
+.tab{flex:1;background:#000;border:1px solid #333;color:#666;font-size:7px;font-weight:bold}
+.tab.active{background:#002020;color:#0ff;border-color:#0ff}
+
+/* KEYBOARD - BIGGER */
+.keyboard{background:#000;padding:3px;display:none;grid-template-columns:repeat(5,1fr);gap:3px;border-top:2px solid #0ff;max-height:200px;overflow:auto}
 .keyboard.show{display:grid}
-.key{background:#222;border:3px solid #555;color:#fff;height:48px;font-size:20px;font-weight:bold;border-radius:6px;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
-.key:active{background:#0ff;color:#000;border-color:#0ff;transform:scale(0.92)}
-.key.wide{grid-column:span 2;font-size:16px}
-.key.go{background:#004444;border-color:#0aa;color:#0ff;font-size:18px}
-.key.go:active{background:#0ff;color:#000}
-.key.del{background:#440000;border-color:#a00;color:#faa}
+.key{background:#1a1a1a;border:2px solid #444;color:#fff;height:44px;font-size:18px;font-weight:bold;border-radius:5px;display:flex;align-items:center;justify-content:center;user-select:none}
+.key:active{background:#0ff;color:#000;border-color:#0ff;transform:scale(0.93)}
+.key.wide{grid-column:span 2;font-size:14px}
+.key.go{background:#003333;border-color:#0aa;color:#0ff}
+.key.back{background:#331111;border-color:#a33;color:#faa}
+.key.del{background:#222;border-color:#666}
+
 .player{position:fixed;inset:0;background:#000;display:none;flex-direction:column;z-index:999}
 .player.show{display:flex}
-.player iframe{flex:1;border:0;background:#000}
-.controls{height:40px;background:#111;display:flex;gap:3px;padding:3px;border-top:2px solid #333}
-.btn{flex:1;background:#333;border:none;color:#fff;font-size:14px;font-weight:bold;border-radius:4px}
+.player iframe{flex:1;border:0}
+.controls{height:36px;background:#111;display:flex;gap:2px;padding:2px;border-top:1px solid #333}
+.btn{flex:1;background:#222;border:none;color:#fff;font-size:13px;font-weight:bold;border-radius:3px}
 .btn:active{background:#0ff;color:#000}
 </style>
 </head>
 <body>
-<div class="top"><div>STARRTUBE</div><div id="clk"></div></div>
+<div class="top"><div>▶ STARRTUBE</div><div id="clk"></div></div>
 
-<div class="search-box" id="sb">
-  <div class="search-label">TYPING:</div>
-  <div class="search-text" id="st">_</div>
+<!-- SEARCH AREA - NOW WITH BACK BUTTON -->
+<div class="search-area" id="sa">
+  <div class="search-input-box">
+    <div class="search-label">You are typing:</div>
+    <div class="search-text empty" id="st">_</div>
+  </div>
+  <div class="search-hint">Tap letters below • Tap SEARCH to go • Tap BACK to cancel</div>
 </div>
 
 <div class="grid" id="grid"></div>
@@ -49,11 +63,11 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;width:600px;height:
 <div class="player" id="pl">
   <iframe id="fr" allow="autoplay;fullscreen"></iframe>
   <div class="controls">
-    <button class="btn" id="b10">-10</button>
+    <button class="btn" id="b10">-10s</button>
     <button class="btn" id="pp">▶/❚❚</button>
-    <button class="btn" id="f10">+10</button>
+    <button class="btn" id="f10">+10s</button>
     <button class="btn" id="fs">⛶</button>
-    <button class="btn" id="cl" style="background:#600">X</button>
+    <button class="btn" id="cl" style="background:#500">✕</button>
   </div>
 </div>
 
@@ -69,116 +83,158 @@ body{background:#000;color:#fff;font-family:Arial,sans-serif;width:600px;height:
 <script>
 const KEY='AIzaSyDurH02crJj5sqXrVO2Ts1ecUPviphWDMU';
 let YT, query='', lastTap=0;
-setInterval(()=>clk.textContent=new Date().toLocaleTimeString([], {h:'2-digit',m:'2-digit'}));
+setInterval(()=>clk.textContent=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
 
-// UPDATE DISPLAY
-function upd(){
-  st.textContent = query || '_';
-  st.style.opacity = query ? '1' : '0.3';
+// UPDATE SEARCH DISPLAY - SIMPLIFIED
+function updateSearch(){
+  const el = document.getElementById('st');
+  if(query.length === 0){
+    el.textContent = 'Tap letters below...';
+    el.className = 'search-text empty';
+  } else {
+    el.textContent = query;
+    el.className = 'search-text';
+  }
+  console.log('Search updated:', query); // Debug
 }
 
-// BUILD HUGE KEYBOARD
-const kb=document.getElementById('kb');
-const keys='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+// BUILD KEYBOARD
+const kb = document.getElementById('kb');
+const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-keys.split('').forEach(l=>{
-  const k=document.createElement('button');
-  k.className='key';
-  k.textContent=l;
-  k.type='button';
-  // SUPER SIMPLE - just add letter
-  k.addEventListener('touchstart',function(e){e.preventDefault();addLet(l)}, {passive:false});
-  k.addEventListener('mousedown',function(e){e.preventDefault();addLet(l)});
-  k.addEventListener('click',function(e){e.preventDefault()});
+letters.split('').forEach(l => {
+  const k = document.createElement('button');
+  k.className = 'key';
+  k.textContent = l;
+  k.type = 'button';
+  k.onclick = function(e){
+    e.preventDefault();
+    const now = Date.now();
+    if(now - lastTap < 120) return;
+    lastTap = now;
+    query += l.toLowerCase();
+    updateSearch();
+    // Visual feedback
+    k.style.background = '#0ff';
+    k.style.color = '#000';
+    setTimeout(()=>{k.style.background='';k.style.color='';},120);
+  };
   kb.appendChild(k);
 });
 
-function addLet(l){
-  const now=Date.now();
-  if(now-lastTap<100)return; // Block doubles
-  lastTap=now;
-  query += l.toLowerCase();
-  upd();
-  // Flash feedback
-  event.target.style.background='#0ff';
-  setTimeout(()=>event.target.style.background='',80);
-}
+// ACTION KEYS WITH BACK BUTTON
+const actions = [
+  {t:'SPACE', a:()=>{query+=' '; updateSearch();}},
+  {t:'DEL', a:()=>{query=query.slice(0,-1); updateSearch();}, c:'del'},
+  {t:'BACK', a:()=>{cancelSearch();}, c:'back'}, // NEW BACK BUTTON
+  {t:'SEARCH', a:()=>{doSearch();}, c:'go'}
+];
 
-// ACTION KEYS - MADE HUGE
-[['SPACE',' '],['DEL',''],['CLEAR',''],['SEARCH','']].forEach(([txt,val])=>{
-  const k=document.createElement('button');
-  k.className='key wide ' + (txt==='SEARCH'?'go':txt==='DEL'?'del':'');
-  k.textContent=txt;
-  k.type='button';
-  k.style.height='52px';
-  const fn=(e)=>{e.preventDefault();
-    if(txt==='SPACE')query+=' ';
-    else if(txt==='DEL')query=query.slice(0,-1);
-    else if(txt==='CLEAR')query='';
-    else if(txt==='SEARCH'){if(query.trim())doSearch();}
-    upd();
-  };
-  k.addEventListener('touchstart',fn,{passive:false});
-  k.addEventListener('mousedown',fn);
-  k.addEventListener('click',e=>e.preventDefault());
+actions.forEach(({t,a,c}) => {
+  const k = document.createElement('button');
+  k.className = 'key wide ' + (c||'');
+  k.textContent = t;
+  k.type = 'button';
+  k.onclick = function(e){ e.preventDefault(); a(); };
   kb.appendChild(k);
 });
 
 // YouTube API
-const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s);
+const s = document.createElement('script');
+s.src = 'https://www.youtube.com/iframe_api';
+document.head.appendChild(s);
 
 async function load(q){
-  grid.innerHTML='<div style="grid-column:1/-1;padding:20px;text-align:center;color:#555">Loading...</div>';
-  sb.classList.remove('show');kb.classList.remove('show');
+  grid.innerHTML = '<div style="grid-column:1/-1;padding:15px;text-align:center;color:#444;font-size:10px">Loading videos...</div>';
+  sa.classList.remove('show');
+  kb.classList.remove('show');
+
   try{
-    const r=await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=${KEY}&maxResults=18&regionCode=US&videoDuration=medium&q=${encodeURIComponent(q)}`);
-    const d=await r.json();grid.innerHTML='';
-    d.items.forEach(v=>{
-      const c=document.createElement('div');c.className='card';c.tabIndex=0;
-      c.innerHTML=`<img src="${v.snippet.thumbnails.medium.url}"><div>${v.snippet.title}</div>`;
-      c.onclick=()=>play(v.id.videoId);
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=${KEY}&maxResults=18&regionCode=US&videoDuration=medium&videoEmbeddable=true&q=${encodeURIComponent(q)}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    grid.innerHTML = '';
+    d.items.forEach(v => {
+      const c = document.createElement('div');
+      c.className = 'card';
+      c.tabIndex = 0;
+      c.innerHTML = `<img src="${v.snippet.thumbnails.medium.url}"><div>${v.snippet.title}</div>`;
+      c.onclick = () => play(v.id.videoId);
       grid.appendChild(c);
     });
-    grid.firstChild?.focus();
-  }catch(e){grid.innerHTML='<div style="color:red">Error</div>'}
+    if(grid.firstChild) grid.firstChild.focus();
+  }catch(e){
+    grid.innerHTML = '<div style="color:#f44;padding:20px">Error loading</div>';
+  }
 }
 
 function play(id){
   pl.classList.add('show');
-  if(YT)YT.destroy();
-  YT=new YT.Player('fr',{videoId:id,playerVars:{autoplay:1,controls:0,playsinline:1}});
-  pp.onclick=()=>YT.getPlayerState()===1?YT.pauseVideo():YT.playVideo();
-  b10.onclick=()=>YT.seekTo(YT.getCurrentTime()-10,1);
-  f10.onclick=()=>YT.seekTo(YT.getCurrentTime()+10,1);
-  cl.onclick=()=>{pl.classList.remove('show');YT.destroy()};
-  fs.onclick=()=>document.fullscreenElement?document.exitFullscreen():pl.requestFullscreen();
+  if(YT) YT.destroy();
+  YT = new YT.Player('fr', {
+    videoId: id,
+    playerVars: {autoplay:1, controls:0, playsinline:1, modestbranding:1}
+  });
+  pp.onclick = () => YT.getPlayerState()===1? YT.pauseVideo() : YT.playVideo();
+  b10.onclick = () => YT.seekTo(YT.getCurrentTime()-10, true);
+  f10.onclick = () => YT.seekTo(YT.getCurrentTime()+10, true);
+  cl.onclick = () => { pl.classList.remove('show'); YT.destroy(); };
+  fs.onclick = () => document.fullscreenElement? document.exitFullscreen() : pl.requestFullscreen();
 }
 
 function doSearch(){
-  const q=query.trim();
-  if(!q)return;
-  query='';upd();
-  sb.classList.remove('show');kb.classList.remove('show');
+  const q = query.trim();
+  if(!q) return;
+  // HIDE KEYBOARD AFTER SEARCH
+  query = '';
+  updateSearch();
+  sa.classList.remove('show');
+  kb.classList.remove('show');
   load(q);
 }
 
+function cancelSearch(){
+  // BACK BUTTON FUNCTION
+  query = '';
+  updateSearch();
+  sa.classList.remove('show');
+  kb.classList.remove('show');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab')[0].classList.add('active');
+  load('trending');
+}
+
 // TABS
-document.querySelectorAll('.tab').forEach((t,i)=>{
-  t.onclick=()=>{
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+document.querySelectorAll('.tab').forEach((t,i) => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
     t.classList.add('active');
-    if(i===0)load('trending');
-    else if(i===1){query='';upd();sb.classList.add('show');kb.classList.add('show');grid.innerHTML='';}
-    else if(i===2)load('news');
-    else if(i===3)load('sports');
-    else if(i===4)load('gaming');
-    else load('live');
+
+    if(i === 0){
+      sa.classList.remove('show');
+      kb.classList.remove('show');
+      load('trending');
+    } else if(i === 1){
+      query = '';
+      updateSearch();
+      sa.classList.add('show');
+      kb.classList.add('show');
+      grid.innerHTML = '';
+    } else if(i === 2){
+      sa.classList.remove('show'); kb.classList.remove('show'); load('news');
+    } else if(i === 3){
+      sa.classList.remove('show'); kb.classList.remove('show'); load('sports');
+    } else if(i === 4){
+      sa.classList.remove('show'); kb.classList.remove('show'); load('gaming');
+    } else {
+      sa.classList.remove('show'); kb.classList.remove('show'); load('live');
+    }
   };
 });
 
 // Start
 load('trending');
-upd();
+updateSearch();
 </script>
 </body>
 </html>
