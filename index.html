@@ -79,7 +79,7 @@ body { display:flex; align-items:center; justify-content:center; }
 #playerFrameWrap iframe { width:100%; height:100%; border:0; }
 #playerControls { position:absolute; bottom:0; left:0; right:0; height:90px; background:linear-gradient(to top, rgba(0,0,0,0.95), transparent); display:flex; align-items:center; justify-content:space-evenly; padding:0 20px; transition:opacity 0.3s; }
 #playerControls.hidden { opacity:0; pointer-events:none; }
-.ctrl-btn { width:56px; height:56px; border-radius:50%; background:rgba(20,20,20,0.9); border:1px solid var(--border); color:var(--text); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; }
+.ctrl-btn { width:56px; height:56px; border-radius:50%; background:rgba(20,20,0.9); border:1px solid var(--border); color:var(--text); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; }
 .ctrl-btn.big { width:70px; height:70px; font-size:30px; }
 .ctrl-btn.focused { background:var(--accent); color:#000; border-color:var(--accent); transform:scale(1.08); }
 </style>
@@ -186,36 +186,36 @@ function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;
 async function loadHome(){
   const grid = grids.home; grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try{
-    // Fetch latest random US videos from all categories
-    const vids = await ytSearch({
-      q: '',
-      regionCode: 'US',
-      type: 'video',
-      videoEmbeddable: 'true',
-      order: 'date',
-      safeSearch: 'moderate',
-      maxResults: '20'
-    });
-    // If empty query returns nothing, fallback to broad US trending
-    let results = vids;
-    if(results.length < 5){
-      results = await ytSearch({
-        regionCode: 'US',
-        type: 'video',
-        videoEmbeddable: 'true',
-        order: 'viewCount',
-        chart: 'mostPopular'
-      });
-    }
-    renderGrid(grid, results.slice(0,20));
+    // Fetch latest US videos from all categories using mostPopular chart
+    const url = new URL(YT_API + '/videos');
+    url.searchParams.set('part','snippet');
+    url.searchParams.set('chart','mostPopular');
+    url.searchParams.set('regionCode','US');
+    url.searchParams.set('maxResults','20');
+    url.searchParams.set('key', API_KEY);
+    url.searchParams.set('videoCategoryId','0');
+
+    const res = await fetch(url);
+    const data = await res.json();
+    const vids = (data.items||[]).map(i=>({
+      id:i.id,
+      title:i.snippet.title,
+      channel:i.snippet.channelTitle,
+      thumb:i.snippet.thumbnails.medium?.url || i.snippet.thumbnails.default.url
+    }));
+
+    renderGrid(grid, vids.slice(0,20));
     setTimeout(()=>focusFirstInGrid('home'), 100);
-  }catch(e){ grid.innerHTML = '<div class="empty">Failed to load</div>'; }
+  }catch(e){
+    console.error(e);
+    grid.innerHTML = '<div class="empty">Failed to load</div>';
+  }
 }
 
 async function loadShorts(){
   const grid = grids.shorts; grid.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try{
-    const vids = await ytSearch({ q:'shorts', videoDuration:'short', type:'video', order:'date' });
+    const vids = await ytSearch({ q:'shorts', videoDuration:'short', type:'video', order:'date', regionCode:'US' });
     renderGrid(grid, vids); setTimeout(()=>focusFirstInGrid('shorts'),100);
   }catch(e){ grid.innerHTML = '<div class="empty">Failed</div>'; }
 }
@@ -292,11 +292,11 @@ function openKeyboard(){
 }
 function closeKeyboard(){ keyboardOpen=false; q('#keyboard').classList.remove('show'); focusElement(q('#searchBar')); }
 function buildKeyboard(){
-  const rows = [['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],['Z','X','C','V','B','N','M','⌫'],['123','SPACE','ENTER']];
+  const rows = [['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],['Z','X','C','V','B','N','M','⌫'],['BACK','SPACE','ENTER']];
   const container = q('#kbKeys'); container.innerHTML='';
-  rows.forEach(r=>{ const row = document.createElement('div'); row.className='kb-row';
-    r.forEach(k=>{ const btn=document.createElement('div'); btn.className='key focusable'; btn.tabIndex=-1; btn.textContent=k;
-      if(k==='SPACE')btn.classList.add('extra-wide'); if(k==='ENTER'||k==='⌫')btn.classList.add('wide');
+  rows.forEach((r, rowIdx)=>{ const row = document.createElement('div'); row.className='kb-row'; row.dataset.row = rowIdx;
+    r.forEach((k, colIdx)=>{ const btn=document.createElement('div'); btn.className='key focusable'; btn.tabIndex=-1; btn.textContent=k; btn.dataset.row = rowIdx; btn.dataset.col = colIdx;
+      if(k==='SPACE')btn.classList.add('extra-wide'); if(k==='ENTER'||k==='⌫'||k==='BACK')btn.classList.add('wide');
       btn.onclick=()=>handleKey(k); row.appendChild(btn); });
     container.appendChild(row);
   });
@@ -305,6 +305,7 @@ function handleKey(k){
   if(k==='⌫'){ kbBuffer=kbBuffer.slice(0,-1); }
   else if(k==='SPACE'){ kbBuffer+=' '; }
   else if(k==='ENTER'){ closeKeyboard(); doSearch(kbBuffer); return; }
+  else if(k==='BACK'){ closeKeyboard(); return; }
   else if(k==='123'){ /* toggle numbers - simplified */ }
   else { kbBuffer+=k; }
   q('#kbDisplay').textContent=kbBuffer;
@@ -325,6 +326,40 @@ function moveFocus(dir){
   const items = getFocusable(container); if(!items.length) return;
   let idx = items.indexOf(currentFocus); if(idx===-1) idx=0;
   const cols = container.querySelector('.grid')? 2 : 0;
+
+  // Special handling for keyboard 2D navigation
+  if(keyboardOpen && currentFocus.classList.contains('key')){
+    const row = parseInt(currentFocus.dataset.row);
+    const col = parseInt(currentFocus.dataset.col);
+    const rows = qa('.kb-row', container);
+
+    if(dir==='right'){
+      const rowKeys = getFocusable(rows[row]);
+      const nextCol = (col + 1) % rowKeys.length;
+      focusElement(rowKeys[nextCol]);
+      return;
+    }
+    else if(dir==='left'){
+      const rowKeys = getFocusable(rows[row]);
+      const prevCol = (col - 1 + rowKeys.length) % rowKeys.length;
+      focusElement(rowKeys[prevCol]);
+      return;
+    }
+    else if(dir==='down'){
+      const nextRow = Math.min(row + 1, rows.length - 1);
+      const nextRowKeys = getFocusable(rows[nextRow]);
+      const targetCol = Math.min(col, nextRowKeys.length - 1);
+      focusElement(nextRowKeys[targetCol]);
+      return;
+    }
+    else if(dir==='up'){
+      const prevRow = Math.max(row - 1, 0);
+      const prevRowKeys = getFocusable(rows[prevRow]);
+      const targetCol = Math.min(col, prevRowKeys.length - 1);
+      focusElement(prevRowKeys[targetCol]);
+      return;
+    }
+  }
 
   if(dir==='right') idx = (idx+1)%items.length;
   else if(dir==='left') idx = (idx-1+items.length)%items.length;
