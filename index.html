@@ -142,9 +142,12 @@ document.addEventListener('keydown',e=>{
     else if(e.key==='ArrowDown'){e.preventDefault();if(cards[curCard+2])setCardActive(curCard+2);else setTabFocus(curTab);}
     else if(e.key==='ArrowUp'){
       e.preventDefault();
-      // NEW: If on first row, go to tabs
-      if(curCard<2){setTabFocus(curTab);}
-      else{setCardActive(curCard-2);}
+      if(curCard<2){
+        // ALWAYS go to HOME tab (index 0) when pressing UP from top row
+        setTabFocus(0);
+      }else{
+        setCardActive(curCard-2);
+      }
     }
     else if(e.key==='Enter'&&cards[curCard]){e.preventDefault();cards[curCard].click();}
   }
