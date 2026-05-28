@@ -49,7 +49,7 @@ body { display:flex; align-items:center; justify-content:center; background:#1a1
 #player { position:absolute; inset:0; background:#000; display:none; z-index:200; }
 #player.show { display:block; }
 #player iframe { width:100%; height:100%; border:0; }
-#player-ui { position:absolute; bottom:0; left:0; right:0; height:80px; background:linear-gradient(transparent, rgba(0,0,0,0.9)); display:flex; align-items:center; justify-content:center; gap:20px; }
+#player-ui { position:absolute; bottom:0; left:0; right:0; height:80px; background:linear-gradient(transparent, rgba(0,0,0.9)); display:flex; align-items:center; justify-content:center; gap:20px; }
 .ctrl { width:48px; height:48px; border-radius:50%; background:rgba(255,255,255,0.2); border:none; color:#fff; font-size:20px; display:flex; align-items:center; justify-content:center; }
 .ctrl.focused { background:var(--accent); color:#000; }
 .loading { display:flex; align-items:center; justify-content:center; height:200px; color:var(--secondary); }
@@ -61,7 +61,7 @@ body { display:flex; align-items:center; justify-content:center; background:#1a1
     <div class="logo"><div class="logo-yt">▶</div><span>StarrTube</span></div>
     <div id="clock">00:00</div>
   </div>
-  
+
   <div id="content">
     <div id="home" class="screen active">
       <div class="grid" id="homeGrid"></div>
@@ -79,7 +79,7 @@ body { display:flex; align-items:center; justify-content:center; background:#1a1
       <div class="grid" id="historyGrid"></div>
     </div>
   </div>
-  
+
   <div id="tabs">
     <button class="tab focusable active" data-tab="home"><div class="tab-icon">⌂</div><div>Home</div></button>
     <button class="tab focusable" data-tab="search"><div class="tab-icon">⌕</div><div>Search</div></button>
@@ -87,12 +87,12 @@ body { display:flex; align-items:center; justify-content:center; background:#1a1
     <button class="tab focusable" data-tab="history"><div class="tab-icon">↻</div><div>History</div></button>
     <button class="tab focusable" data-tab="menu"><div class="tab-icon">⋮</div><div>Menu</div></button>
   </div>
-  
+
   <div id="keyboard">
     <div class="kb-display" id="kbDisplay"></div>
     <div class="kb-keys" id="kbKeys"></div>
   </div>
-  
+
   <div id="player">
     <div id="playerFrame"></div>
     <div id="player-ui">
@@ -101,7 +101,7 @@ body { display:flex; align-items:center; justify-content:center; background:#1a1
       <button class="ctrl focusable" data-act="close">✕</button>
     </div>
   </div>
-  
+
   <div id="menuOverlay" style="position:absolute; inset:60px 0 60px 0; background:var(--bg); display:none; flex-direction:column; z-index:150; padding:20px; gap:12px;">
     <button class="video-card focusable" data-menu="home" style="padding:20px; text-align:left; font-size:16px; font-weight:600;">Go Home <span style="float:right;">⌂</span></button>
     <button class="video-card focusable" data-menu="account" style="padding:20px; text-align:left; font-size:16px; font-weight:600;">Account <span style="float:right;">👤</span></button>
@@ -118,7 +118,7 @@ let currentScreen = 'home';
 
 function openMenu() {
   document.getElementById('menuOverlay').style.display = 'flex';
-  setTimeout(() => focusElement(document.querySelector('#menuOverlay .focusable')), 50);
+  setTimeout(() => focusElement(document.querySelector('#menuOverlay.focusable')), 50);
 }
 
 function closeMenu() {
@@ -173,8 +173,7 @@ function updateClock() {
 function getFocusables() {
   const activeEl = document.querySelector('#player.show, #keyboard.show, #menuOverlay[style*="flex"]') || document.getElementById('app');
   return Array.from(activeEl.querySelectorAll('.focusable')).filter(el => {
-    const style = window.getComputedStyle(el);
-    return style.display !== 'none' && el.offsetParent !== null;
+    return el.offsetParent!== null && window.getComputedStyle(el).display!== 'none';
   });
 }
 
@@ -183,96 +182,86 @@ function focusElement(el) {
   document.querySelectorAll('.focused').forEach(e => e.classList.remove('focused'));
   el.classList.add('focused');
   currentFocus = el;
-  el.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+  el.scrollIntoView({block: 'nearest', inline: 'nearest'});
 }
 
 function moveFocus(dir) {
   const items = getFocusables();
   if (!items.length) return;
-  
-  let idx = items.indexOf(currentFocus);
-  if (idx === -1) idx = 0;
-  
-  if (document.getElementById('keyboard').classList.contains('show') && currentFocus.classList.contains('key')) {
-    const keys = Array.from(document.querySelectorAll('#keyboard .key'));
-    const currentIdx = keys.indexOf(currentFocus);
-    
-    if (dir === 'left' && currentIdx > 0) {
-      const prev = keys[currentIdx - 1];
-      if (prev.closest('.kb-row') === currentFocus.closest('.kb-row')) {
-        focusElement(prev); return;
-      }
+  if (!currentFocus ||!items.includes(currentFocus)) {
+    focusElement(items[0]);
+    return;
+  }
+
+  const isKeyboard = document.getElementById('keyboard').classList.contains('show');
+  const isMenu = document.getElementById('menuOverlay').style.display === 'flex';
+  const isPlayer = document.getElementById('player').classList.contains('show');
+  const isTabs = currentFocus.classList.contains('tab');
+  const isVideoCard = currentFocus.classList.contains('video-card');
+  const isMenuItem = currentFocus.hasAttribute('data-menu');
+
+  if (isKeyboard && currentFocus.classList.contains('key')) {
+    const allKeys = Array.from(document.querySelectorAll('#keyboard.key'));
+    const row = currentFocus.closest('.kb-row');
+    const rowKeys = Array.from(row.querySelectorAll('.key'));
+    const colIdx = rowKeys.indexOf(currentFocus);
+    const allRows = Array.from(document.querySelectorAll('#keyboard.kb-row'));
+    const rowIdx = allRows.indexOf(row);
+
+    if (dir === 'left' && colIdx > 0) { focusElement(rowKeys[colIdx - 1]); return; }
+    if (dir === 'right' && colIdx < rowKeys.length - 1) { focusElement(rowKeys[colIdx + 1]); return; }
+    if (dir === 'up' && rowIdx > 0) {
+      const prevKeys = Array.from(allRows[rowIdx - 1].querySelectorAll('.key'));
+      focusElement(prevKeys[Math.min(colIdx, prevKeys.length - 1)]); return;
     }
-    if (dir === 'right' && currentIdx < keys.length - 1) {
-      const next = keys[currentIdx + 1];
-      if (next.closest('.kb-row') === currentFocus.closest('.kb-row')) {
-        focusElement(next); return;
-      }
-    }
-    if (dir === 'up' || dir === 'down') {
-      const rect = currentFocus.getBoundingClientRect();
-      let best = null, bestDist = Infinity;
-      keys.forEach(k => {
-        if (k === currentFocus) return;
-        const r = k.getBoundingClientRect();
-        const isAbove = r.bottom <= rect.top + 5;
-        const isBelow = r.top >= rect.bottom - 5;
-        if ((dir === 'up' && isAbove) || (dir === 'down' && isBelow)) {
-          const dist = Math.abs(r.left + r.width/2 - (rect.left + rect.width/2)) + Math.abs((dir === 'up' ? rect.top - r.bottom : r.top - rect.bottom));
-          if (dist < bestDist) { bestDist = dist; best = k; }
-        }
-      });
-      if (best) { focusElement(best); return; }
+    if (dir === 'down' && rowIdx < allRows.length - 1) {
+      const nextKeys = Array.from(allRows[rowIdx + 1].querySelectorAll('.key'));
+      focusElement(nextKeys[Math.min(colIdx, nextKeys.length - 1)]); return;
     }
   }
-  
-  if (currentFocus.classList.contains('video-card')) {
-    const cards = Array.from(document.querySelectorAll('.screen.active .video-card'));
-    const idx = cards.indexOf(currentFocus);
-    if (idx !== -1) {
-      if (dir === 'left' && idx > 0) { focusElement(cards[idx - 1]); return; }
-      if (dir === 'right' && idx < cards.length - 1) { focusElement(cards[idx + 1]); return; }
-      if (dir === 'up' && idx >= 2) { focusElement(cards[idx - 2]); return; }
-      if (dir === 'down' && idx < cards.length - 2) { focusElement(cards[idx + 2]); return; }
-      if (dir === 'down' && idx >= cards.length - 2) {
-        const tabs = document.querySelectorAll('#tabs .tab');
-        focusElement(tabs[Math.min(idx % 2, tabs.length - 1)]); return;
-      }
-    }
+
+  if (isMenu && isMenuItem) {
+    const menuItems = Array.from(document.querySelectorAll('#menuOverlay [data-menu]'));
+    const idx = menuItems.indexOf(currentFocus);
+    if (dir === 'up' && idx > 0) { focusElement(menuItems[idx - 1]); return; }
+    if (dir === 'down' && idx < menuItems.length - 1) { focusElement(menuItems[idx + 1]); return; }
   }
-  
-  if (currentFocus.classList.contains('tab')) {
-    const tabs = Array.from(document.querySelectorAll('#tabs .tab'));
+
+  if (isTabs) {
+    const tabs = Array.from(document.querySelectorAll('#tabs.tab'));
     const idx = tabs.indexOf(currentFocus);
     if (dir === 'left' && idx > 0) { focusElement(tabs[idx - 1]); return; }
     if (dir === 'right' && idx < tabs.length - 1) { focusElement(tabs[idx + 1]); return; }
     if (dir === 'up') {
-      const cards = Array.from(document.querySelectorAll('.screen.active .video-card'));
-      if (cards.length) { focusElement(cards[Math.min(idx * 2, cards.length - 1)]); return; }
+      const cards = Array.from(document.querySelectorAll('.screen.active.video-card'));
+      if (cards.length > 0) { focusElement(cards[cards.length - 1]); return; }
     }
   }
-  
-  const rect = currentFocus.getBoundingClientRect();
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
-  let best = null, bestScore = Infinity;
-  
-  items.forEach(el => {
-    if (el === currentFocus) return;
-    const r = el.getBoundingClientRect();
-    const ex = r.left + r.width / 2;
-    const ey = r.top + r.height / 2;
-    let score = Infinity;
-    
-    if (dir === 'up' && ey < cy) score = (cy - ey) * 1000 + Math.abs(ex - cx);
-    if (dir === 'down' && ey > cy) score = (ey - cy) * 1000 + Math.abs(ex - cx);
-    if (dir === 'left' && ex < cx) score = (cx - ex) * 1000 + Math.abs(ey - cy);
-    if (dir === 'right' && ex > cx) score = (ex - cx) * 1000 + Math.abs(ey - cy);
-    
-    if (score < bestScore) { bestScore = score; best = el; }
-  });
-  
-  if (best) focusElement(best);
+
+  if (isVideoCard) {
+    const cards = Array.from(document.querySelectorAll('.screen.active.video-card'));
+    const idx = cards.indexOf(currentFocus);
+    if (idx === -1) return;
+
+    if (dir === 'left' && idx % 2 === 1) { focusElement(cards[idx - 1]); return; }
+    if (dir === 'right' && idx % 2 === 0 && idx + 1 < cards.length) { focusElement(cards[idx + 1]); return; }
+    if (dir === 'up' && idx >= 2) { focusElement(cards[idx - 2]); return; }
+    if (dir === 'down') {
+      if (idx + 2 < cards.length) { focusElement(cards[idx + 2]); return; }
+      else {
+        const tabs = Array.from(document.querySelectorAll('#tabs.tab'));
+        const activeTab = document.querySelector('.tab.active');
+        focusElement(tabs[tabs.indexOf(activeTab)]); return;
+      }
+    }
+  }
+
+  if (isPlayer && currentFocus.classList.contains('ctrl')) {
+    const ctrls = Array.from(document.querySelectorAll('#player.ctrl'));
+    const idx = ctrls.indexOf(currentFocus);
+    if (dir === 'left' && idx > 0) { focusElement(ctrls[idx - 1]); return; }
+    if (dir === 'right' && idx < ctrls.length - 1) { focusElement(ctrls[idx + 1]); return; }
+  }
 }
 
 function setupNavigation() {
@@ -291,23 +280,20 @@ function setupNavigation() {
         break;
     }
   });
-  
+
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
-      if (tab.dataset.tab === 'menu') {
-        openMenu();
-      } else {
-        switchTab(tab.dataset.tab);
-      }
+      if (tab.dataset.tab === 'menu') openMenu();
+      else switchTab(tab.dataset.tab);
     });
   });
-  
+
   document.querySelectorAll('[data-menu]').forEach(item => {
     item.addEventListener('click', () => handleMenu(item.dataset.menu));
   });
-  
+
   document.getElementById('searchBtn').addEventListener('click', showKeyboard);
-  
+
   document.querySelectorAll('.ctrl').forEach(btn => {
     btn.addEventListener('click', () => {
       const act = btn.dataset.act;
@@ -323,13 +309,13 @@ function switchTab(tab) {
   document.getElementById(tab).classList.add('active');
   document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
   currentScreen = tab;
-  
-  if (tab === 'home' && !document.getElementById('homeGrid').children.length) loadHome();
-  if (tab === 'shorts' && !document.getElementById('shortsGrid').children.length) loadShorts();
+
+  if (tab === 'home' &&!document.getElementById('homeGrid').children.length) loadHome();
+  if (tab === 'shorts' &&!document.getElementById('shortsGrid').children.length) loadShorts();
   if (tab === 'history') loadHistory();
-  
+
   setTimeout(() => {
-    const first = document.querySelector(`#${tab} .focusable`);
+    const first = document.querySelector(`#${tab}.focusable`);
     if (first) focusElement(first);
   }, 50);
 }
@@ -342,7 +328,7 @@ async function ytSearch(params) {
   url.searchParams.set('maxResults', '20');
   url.searchParams.set('regionCode', 'US');
   Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
-  
+
   try {
     const res = await fetch(url);
     const data = await res.json();
@@ -370,19 +356,19 @@ function createVideoCard(video) {
 async function loadHome() {
   const grid = document.getElementById('homeGrid');
   grid.innerHTML = '<div class="loading">Loading...</div>';
-  
+
   const queries = ['music', 'news', 'sports', 'comedy', 'gaming'];
   let allVideos = [];
-  
+
   for (const q of queries) {
     const videos = await ytSearch({q, order: 'viewCount'});
     allVideos = allVideos.concat(videos.slice(0, 4));
     if (allVideos.length >= 20) break;
   }
-  
+
   grid.innerHTML = '';
   allVideos.slice(0, 20).forEach(v => grid.appendChild(createVideoCard(v)));
-  
+
   if (allVideos.length === 0) {
     grid.innerHTML = '<div class="loading">No videos found. Check connection.</div>';
   }
@@ -427,12 +413,12 @@ function playVideo(id, video) {
     channel: video.snippet?.channelTitle || video.channel,
     thumbnail: video.snippet?.thumbnails?.medium?.url || video.thumbnail
   };
-  localStorage.setItem('starrtube_history', JSON.stringify([entry, ...history.filter(h => h.id !== id)].slice(0, 50)));
-  
-  document.getElementById('playerFrame').innerHTML = 
+  localStorage.setItem('starrtube_history', JSON.stringify([entry,...history.filter(h => h.id!== id)].slice(0, 50)));
+
+  document.getElementById('playerFrame').innerHTML =
     `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1" allow="autoplay"></iframe>`;
   document.getElementById('player').classList.add('show');
-  setTimeout(() => focusElement(document.querySelector('#player .ctrl')), 100);
+  setTimeout(() => focusElement(document.querySelector('#player.ctrl')), 100);
 }
 
 function closePlayer() {
@@ -450,14 +436,14 @@ function buildKeyboard() {
   ];
   const container = document.getElementById('kbKeys');
   container.innerHTML = '';
-  
+
   layout.forEach(row => {
     const rowEl = document.createElement('div');
     rowEl.className = 'kb-row';
     row.forEach(key => {
       const btn = document.createElement('button');
-      btn.className = 'key focusable' + (key.length > 1 ? ' wide' : '');
-      btn.textContent = key === 'SPACE' ? '␣' : key === 'BACK' ? '←' : key === 'ENTER' ? '↵' : key;
+      btn.className = 'key focusable' + (key.length > 1? ' wide' : '');
+      btn.textContent = key === 'SPACE'? '␣' : key === 'BACK'? '←' : key === 'ENTER'? '↵' : key;
       btn.dataset.key = key;
       btn.addEventListener('click', () => handleKey(key));
       rowEl.appendChild(btn);
@@ -471,7 +457,7 @@ function showKeyboard() {
   kbText = '';
   document.getElementById('kbDisplay').textContent = '';
   document.getElementById('keyboard').classList.add('show');
-  setTimeout(() => focusElement(document.querySelector('#keyboard .key')), 50);
+  setTimeout(() => focusElement(document.querySelector('#keyboard.key')), 50);
 }
 function hideKeyboard() {
   document.getElementById('keyboard').classList.remove('show');
