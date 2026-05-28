@@ -4,238 +4,182 @@
 <meta name="viewport" content="width=600,height=600">
 <style>
 body{margin:0;background:#000;color:#fff;font-family:sans-serif;width:600px;height:600px;overflow:hidden;display:flex;flex-direction:column}
-.header{height:32px;background:#111;padding:0 8px;display:flex;align-items:center;justify-content:space-between;font-size:11px;border-bottom:1px solid #333}
-.grid{flex:1;overflow:auto;padding:4px;display:grid;grid-template-columns:1fr 1fr;gap:4px;align-content:start}
-.card{background:#1a1a1a;border:2px solid #333;padding:4px;cursor:pointer;border-radius:4px}
-.card:focus{border-color:#0ff;outline:none;background:#0a2222}
-.card img{width:100%;height:75px;object-fit:cover;background:#000;border-radius:2px}
-.card div{height:26px;overflow:hidden;font-size:10px;margin-top:2px;line-height:1.2}
-.tabs{display:flex;height:38px;background:#111;border-top:1px solid #333}
-.tab{flex:1;background:#1a1a1a;margin:2px;border:1px solid #333;color:#888;font-size:8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:3px}
+.header{height:30px;background:#111;padding:0 8px;display:flex;align-items:center;justify-content:space-between;font-size:11px}
+.grid{flex:1;overflow:auto;padding:3px;display:grid;grid-template-columns:1fr 1fr;gap:3px;align-content:start}
+.card{background:#1a1a1a;border:2px solid #333;padding:3px;cursor:pointer;border-radius:3px}
+.card:focus{border-color:#0ff;outline:none}
+.card img{width:100%;height:70px;object-fit:cover;background:#000}
+.card div{height:24px;overflow:hidden;font-size:9px;margin-top:2px}
+.tabs{display:flex;height:36px;background:#111;border-top:1px solid #333}
+.tab{flex:1;background:#1a1a1a;margin:1px;border:1px solid #333;color:#888;font-size:8px;cursor:pointer}
 .tab.active{background:#0a2222;color:#0ff;border-color:#0ff}
-.tab:focus{outline:2px solid #0ff;outline-offset:-2px}
-.tab-icon{font-size:16px}
-.searchbox{background:#111;padding:4px;display:flex;gap:4px;border-bottom:1px solid #333}
-.searchbox input{flex:1;background:#222;border:1px solid #444;color:#fff;padding:4px;font-size:11px;border-radius:3px}
-.searchbox input:focus{border-color:#0ff;outline:none}
-.searchbox button{background:#0ff;color:#000;border:none;padding:4px 8px;border-radius:3px;font-size:10px;font-weight:bold;cursor:pointer;min-width:35px}
-.searchbox button:focus{outline:2px solid #fff;outline-offset:-2px}
-.searchbox button.clear{background:#444;color:#fff}
-.keyboard{background:#111;padding:4px;display:grid;grid-template-columns:repeat(10,1fr);gap:2px;max-height:90px;overflow:auto;border-bottom:1px solid #333}
-.kb-key{background:#222;border:1px solid #444;color:#fff;height:22px;font-size:10px;cursor:pointer;border-radius:2px}
-.kb-key:focus{background:#0ff;color:#000;outline:none;border-color:#0ff}
+.tab:focus{outline:1px solid #0ff}
+.searchbox{background:#111;padding:3px;display:flex;gap:3px}
+.searchbox input{flex:1;background:#222;border:1px solid #444;color:#fff;padding:3px;font-size:11px}
+.searchbox button{background:#0ff;color:#000;border:none;padding:3px 8px;font-size:10px;font-weight:bold;cursor:pointer;min-width:32px}
+.searchbox button:focus{outline:2px solid #fff}
+.keyboard{background:#111;padding:3px;display:grid;grid-template-columns:repeat(10,1fr);gap:2px;max-height:85px}
+.kb-key{background:#222;border:1px solid #444;color:#fff;height:20px;font-size:9px;cursor:pointer}
+.kb-key:focus{background:#0ff;color:#000;outline:none}
 .kb-key.wide{grid-column:span 2}
 .player{position:absolute;inset:0;background:#000;display:none;flex-direction:column;z-index:99}
 .player.show{display:flex}
-.player-video{flex:1;position:relative;background:#000;display:flex;align-items:center;justify-content:center}
-.player-video iframe{width:100%;height:100%;border:0}
-.player-controls{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.9));padding:15px 10px 10px;display:flex;align-items:center;gap:8px;transition:opacity 0.3s}
-.player-controls.hidden{opacity:0;pointer-events:none}
-.ctrl-btn{background:rgba(255,255,255,0.2);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(5px)}
-.ctrl-btn:focus{background:#0ff;color:#000;outline:2px solid #0ff;outline-offset:2px}
-.ctrl-btn.big{width:44px;height:44px;font-size:20px;background:rgba(255,255,255,0.3)}
-.ctrl-spacer{flex:1}
-.ctrl-time{font-size:11px;color:#fff;background:rgba(0,0,0,0.7);padding:3px 6px;border-radius:3px;min-width:70px;text-align:center}
-.tap-area{position:absolute;inset:0;z-index:5;cursor:pointer}
+.player iframe{flex:1;border:0}
+.player-bar{height:40px;background:#111;display:flex;align-items:center;gap:5px;padding:0 5px}
+.ctrl{background:#333;border:none;color:#fff;padding:5px 8px;border-radius:3px;font-size:12px;cursor:pointer}
+.ctrl:focus{background:#0ff;color:#000;outline:none}
+.ctrl.big{font-size:16px;padding:5px 12px}
 </style>
 </head>
 <body>
-<div class="header"><span>▶ StarrTube</span><span id="clock"></span></div>
-<div class="searchbox" id="searchbox" style="display:none">
-  <input id="q" placeholder="Search..." autocomplete="off">
-  <button id="goBtn" tabindex="0">GO</button>
-  <button id="clearBtn" class="clear" tabindex="0">X</button>
+<div class="header"><span>StarrTube</span><span id="t"></span></div>
+<div class="searchbox" id="sb" style="display:none">
+  <input id="q" placeholder="Search" autocomplete="off" autocorrect="off">
+  <button id="go" tabindex="0">GO</button>
+  <button id="clr" tabindex="0">X</button>
 </div>
 <div class="keyboard" id="kb" style="display:none"></div>
-<div class="grid" id="grid"></div>
-
-<div class="player" id="player">
-  <div class="player-video" id="playerVideo">
-    <div class="tap-area" id="tapArea"></div>
-    <div id="playerFrame"></div>
-    <div class="player-controls" id="controls">
-      <button class="ctrl-btn" id="back10" tabindex="0">⏪</button>
-      <button class="ctrl-btn big" id="playPause" tabindex="0">⏯</button>
-      <button class="ctrl-btn" id="fwd10" tabindex="0">⏩</button>
-      <div class="ctrl-spacer"></div>
-      <div class="ctrl-time" id="timeDisplay">0:00 / 0:00</div>
-      <button class="ctrl-btn" id="fullscreen" tabindex="0">⛶</button>
-      <button class="ctrl-btn" id="closeBtn" tabindex="0" style="background:rgba(255,0,0,0.7)">✕</button>
-    </div>
+<div class="grid" id="g"></div>
+<div class="player" id="p">
+  <iframe id="f" allow="autoplay"></iframe>
+  <div class="player-bar">
+    <button class="ctrl" id="b10">⏪10</button>
+    <button class="ctrl big" id="pp">⏯</button>
+    <button class="ctrl" id="f10">10⏩</button>
+    <button class="ctrl" id="fs" style="margin-left:auto">⛶</button>
+    <button class="ctrl" id="x" style="background:#800">✕</button>
   </div>
 </div>
-
 <div class="tabs">
-  <button class="tab active" data-idx="0"><div class="tab-icon">⌂</div><div>Home</div></button>
-  <button class="tab" data-idx="1"><div class="tab-icon">⌕</div><div>Search</div></button>
-  <button class="tab" data-idx="2"><div class="tab-icon">📰</div><div>News</div></button>
-  <button class="tab" data-idx="3"><div class="tab-icon">⚽</div><div>Sports</div></button>
-  <button class="tab" data-idx="4"><div class="tab-icon">🎮</div><div>Gaming</div></button>
-  <button class="tab" data-idx="5"><div class="tab-icon">●</div><div>Live</div></button>
+  <button class="tab active">⌂ Home</button>
+  <button class="tab">⌕ Search</button>
+  <button class="tab">📰 News</button>
+  <button class="tab">⚽ Sports</button>
+  <button class="tab">🎮 Gaming</button>
+  <button class="tab">● Live</button>
 </div>
 
 <script>
 const KEY='AIzaSyDurH02crJj5sqXrVO2Ts1ecUPviphWDMU';
-let player, playerReady=false, controlsVisible=true, hideTimer;
+let YTP;
+setInterval(()=>t.textContent=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
 
-setInterval(()=>document.getElementById('clock').textContent=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})),1000;
-
-// Build keyboard - FIXED: no double events
-const kb=document.getElementById('kb');
-const q=document.getElementById('q');
-'QWERTYUIOPASDFGHJKLZXCVBNM'.split('').forEach(l=>{
-  const b=document.createElement('button');b.className='kb-key';b.textContent=l;b.tabIndex=0;
-  b.addEventListener('click',()=>{q.value+=l.toLowerCase()}); // Only click, no keydown
+// Build keyboard - SIMPLE CLICK ONLY
+const kb=document.getElementById('kb'), q=document.getElementById('q');
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(l=>{
+  const b=document.createElement('button');
+  b.className='kb-key'; b.textContent=l; b.type='button';
+  b.onclick=function(){ q.value += l.toLowerCase(); q.focus(); }; // Direct, no event conflicts
   kb.appendChild(b);
 });
-[['SPACE',' '],['DEL','⌫'],['CLEAR','']].forEach(([t,v])=>{
-  const b=document.createElement('button');b.className='kb-key wide';b.textContent=t;b.tabIndex=0;
-  b.addEventListener('click',()=>{if(t==='DEL')q.value=q.value.slice(0,-1);else if(t==='SPACE')q.value+=' ';else if(t==='CLEAR')q.value=''});
+[{t:'SPACE',v:' '},{t:'DEL',v:'del'},{t:'CLEAR',v:'clr'}].forEach(x=>{
+  const b=document.createElement('button');
+  b.className='kb-key wide'; b.textContent=x.t; b.type='button';
+  b.onclick=function(){ if(x.v==='del')q.value=q.value.slice(0,-1); else if(x.v===' ')q.value+=' '; else q.value=''; q.focus(); };
   kb.appendChild(b);
 });
 
-// Search buttons
-document.getElementById('goBtn').onclick=doSearch;
-document.getElementById('clearBtn').onclick=()=>{q.value='';q.focus()};
+document.getElementById('go').onclick=()=>search();
+document.getElementById('clr').onclick=()=>{q.value='';q.focus()};
 
-// Load YouTube API
 const tag=document.createElement('script');tag.src='https://www.youtube.com/iframe_api';document.head.appendChild(tag);
-window.onYouTubeIframeAPIReady=()=>{playerReady=true};
+window.onYouTubeIframeAPIReady=()=>{};
 
-async function loadVideos(query, params={}){
-  const grid=document.getElementById('grid');
-  grid.innerHTML='<div style="grid-column:1/-1;padding:20px;text-align:center;color:#666">Loading...</div>';
-  document.getElementById('searchbox').style.display='none';
-  document.getElementById('kb').style.display='none';
-
-  const url=new URL('https://www.googleapis.com/youtube/v3/search');
-  Object.entries({part:'snippet',type:'video',key:KEY,maxResults:'20',regionCode:'US',videoEmbeddable:'true',videoDuration:'medium',q:query,...params}).forEach(([k,v])=>url.searchParams.set(k,v));
-
-  try{
-    const r=await fetch(url);const d=await r.json();grid.innerHTML='';
-    (d.items||[]).forEach((v,i)=>{
-      const c=document.createElement('div');c.className='card';c.tabIndex=0;
-      c.innerHTML=`<img src="${v.snippet.thumbnails.medium.url}" loading="lazy"><div>${v.snippet.title}</div>`;
-      c.onclick=()=>openPlayer(v.id.videoId);
-      grid.appendChild(c);
-      if(i===0)setTimeout(()=>c.focus(),50);
-    });
-  }catch(e){grid.innerHTML='<div style="grid-column:1/-1;padding:20px;color:#f66">Error</div>'}
-}
-
-function openPlayer(videoId){
-  const playerDiv=document.getElementById('player');
-  playerDiv.classList.add('show');
-  controlsVisible=true;
-  document.getElementById('controls').classList.remove('hidden');
-
-  if(player)player.destroy();
-  player=new YT.Player('playerFrame',{
-    videoId,playerVars:{autoplay:1,controls:0,modestbranding:1,playsinline:1,rel:0,fs:0},
-    events:{onReady:()=>{setTimeout(()=>document.getElementById('playPause').focus(),300);updateTime()}}
+async function load(query){
+  g.innerHTML='<div style="grid-column:1/-1;padding:20px;color:#666;text-align:center">Loading...</div>';
+  sb.style.display='none'; kb.style.display='none';
+  const url=`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=${KEY}&maxResults=20&regionCode=US&videoDuration=medium&videoEmbeddable=true&q=${encodeURIComponent(query)}`;
+  const d=await (await fetch(url)).json();
+  g.innerHTML='';
+  d.items.forEach((v,i)=>{
+    const c=document.createElement('div');c.className='card';c.tabIndex=0;
+    c.innerHTML=`<img src="${v.snippet.thumbnails.medium.url}"><div>${v.snippet.title}</div>`;
+    c.onclick=()=>play(v.id.videoId);
+    g.appendChild(c);
+    if(i===0)c.focus();
   });
-
-  document.getElementById('playPause').onclick=()=>{player.getPlayerState()===1?player.pauseVideo():player.playVideo()};
-  document.getElementById('back10').onclick=()=>player.seekTo(player.getCurrentTime()-10,true);
-  document.getElementById('fwd10').onclick=()=>player.seekTo(player.getCurrentTime()+10,true);
-  document.getElementById('closeBtn').onclick=closePlayer;
-  document.getElementById('fullscreen').onclick=()=>{const el=document.getElementById('playerVideo');document.fullscreenElement?document.exitFullscreen():el.requestFullscreen()};
-  document.getElementById('tapArea').onclick=toggleControls;
-  resetHideTimer();
 }
 
-function toggleControls(){
-  controlsVisible=!controlsVisible;
-  document.getElementById('controls').classList.toggle('hidden',!controlsVisible);
-  if(controlsVisible)resetHideTimer();
+function play(id){
+  p.classList.add('show');
+  if(YTP)YTP.destroy();
+  YTP=new YT.Player('f',{videoId:id,playerVars:{autoplay:1,controls:0,playsinline:1},events:{onReady:()=>pp.focus()}});
+  pp.onclick=()=>YTP.getPlayerState()===1?YTP.pauseVideo():YTP.playVideo();
+  b10.onclick=()=>YTP.seekTo(YTP.getCurrentTime()-10,1);
+  f10.onclick=()=>YTP.seekTo(YTP.getCurrentTime()+10,1);
+  x.onclick=()=>{p.classList.remove('show');YTP.stopVideo();document.querySelector('.card')?.focus()};
+  fs.onclick=()=>document.fullscreenElement?document.exitFullscreen():p.requestFullscreen();
 }
-function resetHideTimer(){clearTimeout(hideTimer);if(controlsVisible){hideTimer=setTimeout(()=>{controlsVisible=false;document.getElementById('controls').classList.add('hidden')},3000)}}
-function updateTime(){if(!player||!player.getCurrentTime)return;const c=player.getCurrentTime()||0,d=player.getDuration()||0;const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');document.getElementById('timeDisplay').textContent=`${fmt(c)} / ${fmt(d)}`;if(document.getElementById('player').classList.contains('show'))setTimeout(updateTime,500)}
-function closePlayer(){document.getElementById('player').classList.remove('show');if(player){player.stopVideo();player.destroy();player=null}document.querySelector('.card')?.focus()}
-function doSearch(){const term=q.value.trim();if(term){document.getElementById('searchbox').style.display='none';document.getElementById('kb').style.display='none';loadVideos(term)}}
 
-// Tabs
+function search(){const v=q.value.trim();if(v){sb.style.display='none';kb.style.display='none';load(v)}}
+
 document.querySelectorAll('.tab').forEach((tab,i)=>{
   tab.onclick=()=>{
     document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
     tab.classList.add('active');
-    const actions=[
-      ()=>loadVideos('trending',{order:'viewCount'}),
-      ()=>{document.getElementById('searchbox').style.display='flex';document.getElementById('kb').style.display='grid';document.getElementById('grid').innerHTML='<div style="grid-column:1/-1;padding:30px;text-align:center;color:#666">Type below</div>';q.value='';setTimeout(()=>document.querySelector('.kb-key').focus(),100)},
-      ()=>loadVideos('US news',{order:'date'}),
-      ()=>loadVideos('sports highlights',{order:'viewCount'}),
-      ()=>loadVideos('gaming',{order:'viewCount'}),
-      ()=>loadVideos('live',{eventType:'live'})
-    ];
-    actions[i]();
+    if(i===0)load('trending US videos');
+    if(i===1){sb.style.display='flex';kb.style.display='grid';g.innerHTML='<div style="grid-column:1/-1;padding:20px;color:#666;text-align:center">Use keyboard</div>';q.value='';setTimeout(()=>kb.querySelector('button').focus(),50)}
+    if(i===2)load('news');
+    if(i===3)load('sports');
+    if(i===4)load('gaming');
+    if(i===5)load('live stream');
   };
 });
 
-// FIXED NAVIGATION
+// SIMPLE NAVIGATION - let browser handle Enter on buttons
 document.addEventListener('keydown',e=>{
-  const inPlayer=document.getElementById('player').classList.contains('show');
-  if(inPlayer){
-    const ctrls=[...document.querySelectorAll('.ctrl-btn')];
-    const idx=ctrls.indexOf(document.activeElement);
-    if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();const n=e.key==='ArrowRight'?Math.min(idx+1,ctrls.length-1):Math.max(idx-1,0);ctrls[n]?.focus();resetHideTimer()}
-    if(e.key==='Enter'&&document.activeElement.classList.contains('ctrl-btn')){e.preventDefault();document.activeElement.click()}
-    if(e.key==='Escape'){e.preventDefault();closePlayer()}
+  if(p.classList.contains('show')){
+    if(e.key==='Escape'){e.preventDefault();x.click()}
     return;
   }
-
   const f=document.activeElement;
-  const cards=[...document.querySelectorAll('.card')];
-  const kbkeys=[...document.querySelectorAll('.kb-key')];
+  const cards=[...g.querySelectorAll('.card')];
+  const keys=[...kb.querySelectorAll('button')];
   const tabs=[...document.querySelectorAll('.tab')];
-  const searchBtns=[document.getElementById('goBtn'),document.getElementById('clearBtn')];
-  const ci=cards.indexOf(f), ki=kbkeys.indexOf(f), ti=tabs.indexOf(f), si=searchBtns.indexOf(f);
+  const ci=cards.indexOf(f), ki=keys.indexOf(f), ti=tabs.indexOf(f);
 
-  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();
+  // Only handle arrows, let Enter work naturally
+  if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
+  e.preventDefault();
 
-  // Keyboard navigation
   if(ki>=0){
-    const cols=10;
-    if(e.key==='ArrowRight'&&kbkeys[ki+1])kbkeys[ki+1].focus();
-    else if(e.key==='ArrowLeft'&&ki>0)kbkeys[ki-1].focus();
-    else if(e.key==='ArrowDown'){
-      if(kbkeys[ki+cols])kbkeys[ki+cols].focus();
-      else document.getElementById('goBtn').focus(); // Go to GO button
+    if(e.key==='ArrowRight'&&keys[ki+1])keys[ki+1].focus();
+    if(e.key==='ArrowLeft'&&ki>0)keys[ki-1].focus();
+    if(e.key==='ArrowDown'){
+      if(keys[ki+10])keys[ki+10].focus();
+      else document.getElementById('go').focus(); // DOWN from last row goes to GO
     }
-    else if(e.key==='ArrowUp'&&kbkeys[ki-cols])kbkeys[ki-cols].focus();
-    else if(e.key==='Enter')f.click();
-    return;
+    if(e.key==='ArrowUp'&&keys[ki-10])keys[ki-10].focus();
   }
-
-  // Search buttons navigation
-  if(si>=0){
-    if(e.key==='ArrowLeft'&&si===1)searchBtns[0].focus();
-    if(e.key==='ArrowRight'&&si===0)searchBtns[1].focus();
-    if(e.key==='ArrowUp')kbkeys[kbkeys.length-1]?.focus();
-    if(e.key==='ArrowDown')cards[0]?.focus()||tabs[0]?.focus();
-    if(e.key==='Enter')f.click();
-    return;
+  else if(f.id==='go'){
+    if(e.key==='ArrowLeft')document.getElementById('clr').focus();
+    if(e.key==='ArrowUp')keys[keys.length-1].focus();
+    if(e.key==='ArrowDown')cards[0]?.focus();
   }
-
-  if(e.key==='ArrowRight'){
-    if(ci>=0&&ci%2===0&&cards[ci+1])cards[ci+1].focus();
-    else if(ti>=0&&ti<5)tabs[ti+1].focus();
+  else if(f.id==='clr'){
+    if(e.key==='ArrowRight')document.getElementById('go').focus();
+    if(e.key==='ArrowUp')keys[keys.length-1].focus();
+    if(e.key==='ArrowDown')cards[0]?.focus();
   }
-  if(e.key==='ArrowLeft'){
-    if(ci>=0&&ci%2===1)cards[ci-1].focus();
-    else if(ti>0)tabs[ti-1].focus();
+  else{
+    if(e.key==='ArrowRight'){
+      if(ci>=0&&ci%2===0&&cards[ci+1])cards[ci+1].focus();
+      else if(ti>=0&&ti<5)tabs[ti+1].focus();
+    }
+    if(e.key==='ArrowLeft'){
+      if(ci>=0&&ci%2===1)cards[ci-1].focus();
+      else if(ti>0)tabs[ti-1].focus();
+    }
+    if(e.key==='ArrowDown'){
+      if(ci>=0&&cards[ci+2])cards[ci+2].focus();
+      else if(ci>=0)tabs[0].focus();
+      else if(ti>=0)cards[0]?.focus();
+    }
+    if(e.key==='ArrowUp'&&ci>=2)cards[ci-2].focus();
   }
-  if(e.key==='ArrowDown'){
-    if(ci>=0&&cards[ci+2])cards[ci+2].focus();
-    else if(ci>=0)tabs[0].focus();
-    else if(ti>=0)cards[0]?.focus();
-    else if(ki>=0)document.getElementById('goBtn').focus();
-  }
-  if(e.key==='ArrowUp'&&ci>=2)cards[ci-2].focus();
-  if(e.key==='Enter'&&f.classList.contains('card'))f.click();
-  if(e.key==='Enter'&&f.classList.contains('tab'))f.click();
 });
 
-loadVideos('trending',{order:'viewCount'});
+load('trending US videos');
 </script>
 </body>
 </html>
