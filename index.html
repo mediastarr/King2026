@@ -32,6 +32,7 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 .msg{grid-column:1/-1;text-align:center;padding:40px 20px;color:#0ff}
 .error{color:#f66;background:#200;border:1px solid #f00;padding:12px;margin:8px;border-radius:5px;grid-column:1/-1;font-size:10px}
 .key-status{position:absolute;top:30px;right:5px;background:rgba(0,0,0,0.8);color:#0ff;font-size:9px;padding:3px 6px;border-radius:3px;z-index:15}
+.count-badge{position:absolute;top:2px;right:2px;background:#0ff;color:#000;font-size:8px;padding:1px 4px;border-radius:2px;font-weight:bold}
 </style>
 </head>
 <body>
@@ -46,35 +47,24 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 </div>
 <div class="player" id="p"><button class="back" id="b">◀ BACK</button><iframe id="f" allowfullscreen allow="autoplay"></iframe></div>
 <div class="tabs">
-  <button class="tab active" data-tab="home">HOME</button>
-  <button class="tab" data-tab="search">SEARCH</button>
-  <button class="tab" data-tab="news">NEWS</button>
-  <button class="tab" data-tab="sports">SPORTS</button>
-  <button class="tab" data-tab="music">MUSIC</button>
-  <button class="tab" data-tab="live">LIVE</button>
+  <button class="tab active" data-tab="home">HOME<span class="count-badge" id="c-home">0</span></button>
+  <button class="tab" data-tab="search">SEARCH<span class="count-badge" id="c-search">0</span></button>
+  <button class="tab" data-tab="news">NEWS<span class="count-badge" id="c-news">0</span></button>
+  <button class="tab" data-tab="sports">SPORTS<span class="count-badge" id="c-sports">0</span></button>
+  <button class="tab" data-tab="music">MUSIC<span class="count-badge" id="c-music">0</span></button>
+  <button class="tab" data-tab="live">LIVE<span class="count-badge" id="c-live">0</span></button>
 </div>
 
 <script>
-// ALL 7 API KEYS WITH AUTO-FALLBACK
-const KEYS=[
-  'AIzaSyCxebesMswpVAubt4VhfpBP0IloB7B-6AE',
-  'AIzaSyDurH02crJj5sqXrVO2Ts1ecUPviphWDMU',
-  'AIzaSyA52UFVj2C-GKlX5nluPKHsqZThiyCnN48',
-  'AIzaSyC_5YNCC8nLEJzR-a_3jLCWB5Bt-ItjNds',
-  'AIzaSyC7lIhVU022mls-kplFDctiLiKmz_gZuE8',
-  'AIzaSyAXU8px5AsEy0EyaqXIHuNI54HhvPBNimc',
-  'AIzaSyAgoLgY55op-mYbDA5CQdU0p4QUFhtlbgk'
-];
+const KEYS=['AIzaSyCxebesMswpVAubt4VhfpBP0IloB7B-6AE','AIzaSyDurH02crJj5sqXrVO2Ts1ecUPviphWDMU','AIzaSyA52UFVj2C-GKlX5nluPKHsqZThiyCnN48','AIzaSyC_5YNCC8nLEJzR-a_3jLCWB5Bt-ItjNds','AIzaSyC7lIhVU022mls-kplFDctiLiKmz_gZuE8','AIzaSyAXU8px5AsEy0EyaqXIHuNI54HhvPBNimc','AIzaSyAgoLgY55op-mYbDA5CQdU0p4QUFhtlbgk'];
 let keyIdx=0, curCard=0, curTab=0, focusMode='cards', cards=[], searchTxt='', kbIdx=0;
 
 setInterval(()=>document.getElementById('t').textContent=new Date().toLocaleTimeString(),1000);
 function updateKeyStatus(){document.getElementById('ks').textContent=`Key ${keyIdx+1}/${KEYS.length}`;}
-
 function setCardActive(i){document.querySelectorAll('.card').forEach(c=>c.classList.remove('active'));if(cards[i]){cards[i].classList.add('active');cards[i].scrollIntoView({block:'nearest'});curCard=i;focusMode='cards';}}
 function setTabFocus(i){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('focus'));const tabs=document.querySelectorAll('.tab');if(tabs[i]){tabs[i].classList.add('focus');curTab=i;focusMode='tabs';}}
 function setKbActive(i){document.querySelectorAll('.kb-key').forEach(k=>k.classList.remove('active'));const keys=document.querySelectorAll('.kb-key');if(keys[i]){keys[i].classList.add('active');kbIdx=i;focusMode='keyboard';}}
 
-// Build keyboard
 const kg=document.getElementById('kg'),kt=document.getElementById('kt');
 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(c=>{const k=document.createElement('div');k.className='kb-key';k.textContent=c;k.onclick=()=>{searchTxt+=c;kt.textContent=searchTxt||'_';};kg.appendChild(k);});
 [{t:'SPACE',v:' '},{t:'DEL',v:'del'},{t:'CLEAR',v:'clr'},{t:'BACK',v:'back',w:1},{t:'SEARCH',v:'go',w:1}].forEach(({t,v,w})=>{const k=document.createElement('div');k.className='kb-key'+(w?' wide':'');k.textContent=t;k.onclick=()=>{if(v==='go'&&searchTxt){document.getElementById('kb').classList.remove('show');load('search',searchTxt);searchTxt='';kt.textContent='_';}else if(v==='back'){document.getElementById('kb').classList.remove('show');setTabFocus(1);}else if(v==='del'){searchTxt=searchTxt.slice(0,-1);kt.textContent=searchTxt||'_';}else if(v==='clr'){searchTxt='';kt.textContent='_';}else{searchTxt+=v;kt.textContent=searchTxt;}};kg.appendChild(k);});
@@ -84,16 +74,21 @@ async function load(tab,q){
   grid.innerHTML='<div class="msg">Loading...</div>';
   cards=[];curCard=0;focusMode='cards';updateKeyStatus();
 
-  const queries={home:'trending US',news:'breaking news US',sports:'sports highlights',music:'top music',live:'live stream',search:q||''};
+  // VIDEO COUNTS PER TAB
+  const counts={home:35,search:30,news:25,sports:20,music:35,live:25};
+  const queries={home:'trending US viral',news:'breaking news US today',sports:'NFL NBA MLB highlights US',music:'top hits Billboard 2024',live:'live now',search:q||''};
+
   const key=KEYS[keyIdx];
-  let url=`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=14&type=video&q=${encodeURIComponent(queries[tab])}&key=${key}&regionCode=US`;
-  if(tab==='live')url+='&eventType=live&order=viewCount';else url+='&order=date';
+  const maxResults=counts[tab];
+  let url=`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${maxResults}&type=video&q=${encodeURIComponent(queries[tab])}&key=${key}&regionCode=US`;
+  if(tab==='live')url+='&eventType=live&order=viewCount';else url+='&order=date&publishedAfter='+new Date(Date.now()-14*24*60*60*1000).toISOString();
 
   try{
     const r=await fetch(url);
     const d=await r.json();
     if(d.error)throw new Error(d.error.message);
     if(!d.items?.length)throw new Error('No results');
+
     grid.innerHTML='';
     d.items.forEach(v=>{
       const c=document.createElement('div');
@@ -103,20 +98,21 @@ async function load(tab,q){
       grid.appendChild(c);
       cards.push(c);
     });
+
+    // Update count badge
+    document.getElementById(`c-${tab}`).textContent=d.items.length;
     setCardActive(0);
+
   }catch(e){
-    // Try next key
     if(keyIdx < KEYS.length-1){
       keyIdx++;
-      grid.innerHTML=`<div class="error">Key ${keyIdx} failed: ${e.message.substring(0,60)}...<br>Trying key ${keyIdx+1}/${KEYS.length}</div>`;
+      grid.innerHTML=`<div class="error">Key ${keyIdx} failed<br>Trying ${keyIdx+1}/${KEYS.length}</div>`;
       updateKeyStatus();
-      setTimeout(()=>load(tab,q),1000);
+      setTimeout(()=>load(tab,q),800);
       return;
     }
-    // All keys failed
-    grid.innerHTML=`<div class="error">All ${KEYS.length} keys failed<br>Last error: ${e.message}<br><small>Using demo mode</small></div>`;
-    for(let i=0;i<8;i++){const c=document.createElement('div');c.className='card';c.innerHTML=`<img src="https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg"><div class="card-title">Demo ${i+1} - Enable YouTube API</div>`;c.onclick=()=>play('dQw4w9WgXcQ');grid.appendChild(c);cards.push(c);}setCardActive(0);
-    keyIdx=0; // Reset for next try
+    grid.innerHTML=`<div class="error">All keys failed: ${e.message}</div>`;
+    keyIdx=0;
   }
 }
 
