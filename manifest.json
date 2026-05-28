@@ -1,0 +1,54 @@
+{
+  "name": "StarrTube",
+  "short_name": "StarrTube",
+  "description": "YouTube for Meta Ray-Ban Display glasses – Home, Search, Shorts, History, and Live",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "categories": ["entertainment", "video"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%23000'/%3E%3Crect x='96' y='156' width='320' height='200' rx='40' fill='%23FF0000'/%3E%3Cpolygon points='210,206 210,306 300,256' fill='white'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%23000'/%3E%3Crect x='36' y='58' width='120' height='76' rx='15' fill='%23FF0000'/%3E%3Cpolygon points='79,77 79,115 113,96' fill='white'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600' viewBox='0 0 600 600'%3E%3Crect width='600' height='600' fill='black'/%3E%3Crect x='0' y='0' width='600' height='60' fill='%23111'/%3E%3Ctext x='20' y='38' fill='white' font-family='system-ui' font-size='18' font-weight='700'%3E▶ StarrTube%3C/text%3E%3Crect x='12' y='72' width='282' height='180' rx='8' fill='%23111' stroke='%23333'/%3E%3Crect x='306' y='72' width='282' height='180' rx='8' fill='%23111' stroke='%23333'/%3E%3Crect x='0' y='540' width='600' height='60' fill='%23000' stroke='%23333'/%3E%3C/svg%3E",
+      "sizes": "600x600",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Search",
+      "short_name": "Search",
+      "description": "Search YouTube videos",
+      "url": "/?tab=search",
+      "icons": [{"src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Ccircle cx='40' cy='40' r='24' fill='none' stroke='white' stroke-width='8'/%3E%3Cline x1='60' y1='60' x2='84' y2='84' stroke='white' stroke-width='8'/%3E%3C/svg%3E", "sizes": "96x96"}]
+    },
+    {
+      "name": "Live",
+      "short_name": "Live",
+      "description": "Watch live streams",
+      "url": "/?tab=live",
+      "icons": [{"src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Ccircle cx='48' cy='48' r='32' fill='%23FF0000'/%3E%3C/svg%3E", "sizes": "96x96"}]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "scope": "/",
+  "lang": "en-US",
+  "dir": "ltr"
+}
