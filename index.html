@@ -4,106 +4,126 @@
 <meta name="viewport" content="width=600,height=600">
 <style>
 body{margin:0;background:#000;color:#fff;font-family:sans-serif;width:600px;height:600px;overflow:hidden;display:flex;flex-direction:column}
-.header{height:30px;background:#111;padding:0 8px;display:flex;align-items:center;justify-content:space-between;font-size:11px}
-.grid{flex:1;overflow:auto;padding:3px;display:grid;grid-template-columns:1fr 1fr;gap:3px;align-content:start}
-.card{background:#1a1a1a;border:2px solid #333;padding:3px;cursor:pointer;border-radius:3px}
+.header{height:28px;background:#111;padding:0 6px;display:flex;align-items:center;justify-content:space-between;font-size:10px}
+.grid{flex:1;overflow:auto;padding:2px;display:grid;grid-template-columns:1fr 1fr;gap:2px;align-content:start}
+.card{background:#1a1a1a;border:2px solid #333;padding:2px;cursor:pointer}
 .card:focus{border-color:#0ff;outline:none}
-.card img{width:100%;height:70px;object-fit:cover;background:#000}
-.card div{height:24px;overflow:hidden;font-size:9px;margin-top:2px}
-.tabs{display:flex;height:36px;background:#111;border-top:1px solid #333}
-.tab{flex:1;background:#1a1a1a;margin:1px;border:1px solid #333;color:#888;font-size:8px;cursor:pointer}
-.tab.active{background:#0a2222;color:#0ff;border-color:#0ff}
-.tab:focus{outline:1px solid #0ff}
-.searchbox{background:#111;padding:3px;display:flex;gap:3px}
-.searchbox input{flex:1;background:#222;border:1px solid #444;color:#fff;padding:3px;font-size:11px}
-.searchbox button{background:#0ff;color:#000;border:none;padding:3px 8px;font-size:10px;font-weight:bold;cursor:pointer;min-width:32px}
-.searchbox button:focus{outline:2px solid #fff}
-.keyboard{background:#111;padding:3px;display:grid;grid-template-columns:repeat(10,1fr);gap:2px;max-height:85px}
-.kb-key{background:#222;border:1px solid #444;color:#fff;height:20px;font-size:9px;cursor:pointer}
-.kb-key:focus{background:#0ff;color:#000;outline:none}
+.card img{width:100%;height:65px;object-fit:cover;background:#000}
+.card div{height:22px;overflow:hidden;font-size:9px}
+.tabs{display:flex;height:34px;background:#111;border-top:1px solid #333}
+.tab{flex:1;background:#1a1a1a;margin:1px;border:1px solid #333;color:#888;font-size:7px;cursor:pointer}
+.tab.active{background:#0a2222;color:#0ff}
+.searchbox{background:#111;padding:2px;display:flex;gap:2px}
+.searchbox input{flex:1;background:#222;border:1px solid #444;color:#fff;padding:2px;font-size:10px}
+.searchbox button{background:#0ff;color:#000;border:none;padding:2px 6px;font-size:9px;font-weight:bold;cursor:pointer;min-width:28px}
+.keyboard{background:#111;padding:2px;display:grid;grid-template-columns:repeat(10,1fr);gap:1px;max-height:80px}
+.kb-key{background:#222;border:1px solid #444;color:#fff;height:18px;font-size:8px;cursor:pointer;user-select:none;-webkit-user-select:none}
+.kb-key:active{background:#0aa}
 .kb-key.wide{grid-column:span 2}
 .player{position:absolute;inset:0;background:#000;display:none;flex-direction:column;z-index:99}
 .player.show{display:flex}
 .player iframe{flex:1;border:0}
-.player-bar{height:40px;background:#111;display:flex;align-items:center;gap:5px;padding:0 5px}
-.ctrl{background:#333;border:none;color:#fff;padding:5px 8px;border-radius:3px;font-size:12px;cursor:pointer}
+.player-bar{height:36px;background:#111;display:flex;align-items:center;gap:3px;padding:0 3px}
+.ctrl{background:#333;border:none;color:#fff;padding:4px 6px;border-radius:2px;font-size:11px;cursor:pointer}
 .ctrl:focus{background:#0ff;color:#000;outline:none}
-.ctrl.big{font-size:16px;padding:5px 12px}
 </style>
 </head>
 <body>
 <div class="header"><span>StarrTube</span><span id="t"></span></div>
 <div class="searchbox" id="sb" style="display:none">
-  <input id="q" placeholder="Search" autocomplete="off" autocorrect="off">
-  <button id="go" tabindex="0">GO</button>
-  <button id="clr" tabindex="0">X</button>
+  <input id="q" placeholder="Search" autocomplete="off" autocorrect="off" spellcheck="false">
+  <button id="go" type="button">GO</button>
+  <button id="clr" type="button">X</button>
 </div>
 <div class="keyboard" id="kb" style="display:none"></div>
 <div class="grid" id="g"></div>
 <div class="player" id="p">
   <iframe id="f" allow="autoplay"></iframe>
   <div class="player-bar">
-    <button class="ctrl" id="b10">⏪10</button>
-    <button class="ctrl big" id="pp">⏯</button>
-    <button class="ctrl" id="f10">10⏩</button>
+    <button class="ctrl" id="b10">⏪</button>
+    <button class="ctrl" id="pp" style="font-size:14px">⏯</button>
+    <button class="ctrl" id="f10">⏩</button>
     <button class="ctrl" id="fs" style="margin-left:auto">⛶</button>
     <button class="ctrl" id="x" style="background:#800">✕</button>
   </div>
 </div>
 <div class="tabs">
-  <button class="tab active">⌂ Home</button>
-  <button class="tab">⌕ Search</button>
-  <button class="tab">📰 News</button>
-  <button class="tab">⚽ Sports</button>
-  <button class="tab">🎮 Gaming</button>
-  <button class="tab">● Live</button>
+  <button class="tab active">Home</button>
+  <button class="tab">Search</button>
+  <button class="tab">News</button>
+  <button class="tab">Sports</button>
+  <button class="tab">Gaming</button>
+  <button class="tab">Live</button>
 </div>
 
 <script>
 const KEY='AIzaSyDurH02crJj5sqXrVO2Ts1ecUPviphWDMU';
-let YTP;
+let YTP, lastKeyTime=0, lastKeyChar='';
 setInterval(()=>t.textContent=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
 
-// Build keyboard - SIMPLE CLICK ONLY
+// DEBOUNCED keyboard - prevents double input within 200ms
 const kb=document.getElementById('kb'), q=document.getElementById('q');
+
+function addChar(char){
+  const now=Date.now();
+  // Prevent same char within 200ms (debounce)
+  if(char===lastKeyChar && now-lastKeyTime<200){
+    console.log('Blocked double:',char);
+    return;
+  }
+  lastKeyChar=char;
+  lastKeyTime=now;
+  q.value += char;
+  q.focus();
+}
+
 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(l=>{
   const b=document.createElement('button');
   b.className='kb-key'; b.textContent=l; b.type='button';
-  b.onclick=function(){ q.value += l.toLowerCase(); q.focus(); }; // Direct, no event conflicts
+  // Use pointerdown instead of click, prevent all defaults
+  b.onpointerdown = b.ontouchstart = (e)=>{e.preventDefault();e.stopPropagation();addChar(l.toLowerCase());return false};
+  b.onclick = (e)=>{e.preventDefault();return false}; // Block click
   kb.appendChild(b);
 });
-[{t:'SPACE',v:' '},{t:'DEL',v:'del'},{t:'CLEAR',v:'clr'}].forEach(x=>{
+
+[{t:'SPACE',c:' '},{t:'DEL',c:'del'},{t:'CLR',c:'clr'}].forEach(x=>{
   const b=document.createElement('button');
   b.className='kb-key wide'; b.textContent=x.t; b.type='button';
-  b.onclick=function(){ if(x.v==='del')q.value=q.value.slice(0,-1); else if(x.v===' ')q.value+=' '; else q.value=''; q.focus(); };
+  b.onpointerdown = (e)=>{e.preventDefault();e.stopPropagation();
+    if(x.c==='del')q.value=q.value.slice(0,-1);
+    else if(x.c===' ')q.value+=' ';
+    else q.value='';
+    q.focus(); return false
+  };
+  b.onclick=(e)=>{e.preventDefault();return false};
   kb.appendChild(b);
 });
 
-document.getElementById('go').onclick=()=>search();
-document.getElementById('clr').onclick=()=>{q.value='';q.focus()};
+document.getElementById('go').onpointerdown=(e)=>{e.preventDefault();search()};
+document.getElementById('clr').onpointerdown=(e)=>{e.preventDefault();q.value='';q.focus()};
 
 const tag=document.createElement('script');tag.src='https://www.youtube.com/iframe_api';document.head.appendChild(tag);
-window.onYouTubeIframeAPIReady=()=>{};
 
 async function load(query){
-  g.innerHTML='<div style="grid-column:1/-1;padding:20px;color:#666;text-align:center">Loading...</div>';
+  g.innerHTML='<div style="grid-column:1/-1;padding:15px;color:#666;text-align:center;font-size:10px">Loading...</div>';
   sb.style.display='none'; kb.style.display='none';
-  const url=`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=${KEY}&maxResults=20&regionCode=US&videoDuration=medium&videoEmbeddable=true&q=${encodeURIComponent(query)}`;
-  const d=await (await fetch(url)).json();
-  g.innerHTML='';
-  d.items.forEach((v,i)=>{
-    const c=document.createElement('div');c.className='card';c.tabIndex=0;
-    c.innerHTML=`<img src="${v.snippet.thumbnails.medium.url}"><div>${v.snippet.title}</div>`;
-    c.onclick=()=>play(v.id.videoId);
-    g.appendChild(c);
-    if(i===0)c.focus();
-  });
+  try{
+    const r=await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=${KEY}&maxResults=20&regionCode=US&videoDuration=medium&videoEmbeddable=true&q=${encodeURIComponent(query)}`);
+    const d=await r.json(); g.innerHTML='';
+    d.items.forEach((v,i)=>{
+      const c=document.createElement('div');c.className='card';c.tabIndex=0;
+      c.innerHTML=`<img src="${v.snippet.thumbnails.medium.url}"><div>${v.snippet.title}</div>`;
+      c.onclick=()=>play(v.id.videoId);
+      g.appendChild(c);
+      if(i===0)setTimeout(()=>c.focus(),30);
+    });
+  }catch(e){g.innerHTML='<div style="color:#f66">Error</div>'}
 }
 
 function play(id){
   p.classList.add('show');
   if(YTP)YTP.destroy();
-  YTP=new YT.Player('f',{videoId:id,playerVars:{autoplay:1,controls:0,playsinline:1},events:{onReady:()=>pp.focus()}});
+  YTP=new YT.Player('f',{videoId:id,playerVars:{autoplay:1,controls:0,playsinline:1}});
   pp.onclick=()=>YTP.getPlayerState()===1?YTP.pauseVideo():YTP.playVideo();
   b10.onclick=()=>YTP.seekTo(YTP.getCurrentTime()-10,1);
   f10.onclick=()=>YTP.seekTo(YTP.getCurrentTime()+10,1);
@@ -117,69 +137,43 @@ document.querySelectorAll('.tab').forEach((tab,i)=>{
   tab.onclick=()=>{
     document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
     tab.classList.add('active');
-    if(i===0)load('trending US videos');
-    if(i===1){sb.style.display='flex';kb.style.display='grid';g.innerHTML='<div style="grid-column:1/-1;padding:20px;color:#666;text-align:center">Use keyboard</div>';q.value='';setTimeout(()=>kb.querySelector('button').focus(),50)}
+    if(i===0)load('trending videos US');
+    if(i===1){sb.style.display='flex';kb.style.display='grid';g.innerHTML='<div style="grid-column:1/-1;padding:15px;color:#666;text-align:center;font-size:10px">Tap keys below</div>';q.value='';setTimeout(()=>kb.querySelector('button').focus(),30)}
     if(i===2)load('news');
     if(i===3)load('sports');
     if(i===4)load('gaming');
-    if(i===5)load('live stream');
+    if(i===5)load('live');
   };
 });
 
-// SIMPLE NAVIGATION - let browser handle Enter on buttons
+// Simplified navigation - only arrows
 document.addEventListener('keydown',e=>{
-  if(p.classList.contains('show')){
-    if(e.key==='Escape'){e.preventDefault();x.click()}
-    return;
-  }
-  const f=document.activeElement;
-  const cards=[...g.querySelectorAll('.card')];
-  const keys=[...kb.querySelectorAll('button')];
-  const tabs=[...document.querySelectorAll('.tab')];
-  const ci=cards.indexOf(f), ki=keys.indexOf(f), ti=tabs.indexOf(f);
-
-  // Only handle arrows, let Enter work naturally
+  if(p.classList.contains('show')&&e.key==='Escape'){e.preventDefault();x.click();return}
   if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;
   e.preventDefault();
+  const f=document.activeElement;
+  const cards=[...g.querySelectorAll('.card')], keys=[...kb.querySelectorAll('button')], tabs=[...document.querySelectorAll('.tab')];
+  const ci=cards.indexOf(f), ki=keys.indexOf(f), ti=tabs.indexOf(f);
 
   if(ki>=0){
     if(e.key==='ArrowRight'&&keys[ki+1])keys[ki+1].focus();
     if(e.key==='ArrowLeft'&&ki>0)keys[ki-1].focus();
-    if(e.key==='ArrowDown'){
-      if(keys[ki+10])keys[ki+10].focus();
-      else document.getElementById('go').focus(); // DOWN from last row goes to GO
-    }
+    if(e.key==='ArrowDown'&&keys[ki+10])keys[ki+10].focus();
+    if(e.key==='ArrowDown'&&!keys[ki+10]&&ki>=20)document.getElementById('go').focus();
     if(e.key==='ArrowUp'&&keys[ki-10])keys[ki-10].focus();
-  }
-  else if(f.id==='go'){
+  }else if(f.id==='go'||f.id==='clr'){
+    if(e.key==='ArrowUp')keys[26]?.focus();
     if(e.key==='ArrowLeft')document.getElementById('clr').focus();
-    if(e.key==='ArrowUp')keys[keys.length-1].focus();
-    if(e.key==='ArrowDown')cards[0]?.focus();
-  }
-  else if(f.id==='clr'){
     if(e.key==='ArrowRight')document.getElementById('go').focus();
-    if(e.key==='ArrowUp')keys[keys.length-1].focus();
-    if(e.key==='ArrowDown')cards[0]?.focus();
-  }
-  else{
-    if(e.key==='ArrowRight'){
-      if(ci>=0&&ci%2===0&&cards[ci+1])cards[ci+1].focus();
-      else if(ti>=0&&ti<5)tabs[ti+1].focus();
-    }
-    if(e.key==='ArrowLeft'){
-      if(ci>=0&&ci%2===1)cards[ci-1].focus();
-      else if(ti>0)tabs[ti-1].focus();
-    }
-    if(e.key==='ArrowDown'){
-      if(ci>=0&&cards[ci+2])cards[ci+2].focus();
-      else if(ci>=0)tabs[0].focus();
-      else if(ti>=0)cards[0]?.focus();
-    }
+  }else{
+    if(e.key==='ArrowRight'){if(ci>=0&&ci%2===0&&cards[ci+1])cards[ci+1].focus();else if(ti>=0&&ti<5)tabs[ti+1].focus()}
+    if(e.key==='ArrowLeft'){if(ci>=0&&ci%2===1)cards[ci-1].focus();else if(ti>0)tabs[ti-1].focus()}
+    if(e.key==='ArrowDown'){if(ci>=0&&cards[ci+2])cards[ci+2].focus();else if(ci>=0)tabs[0].focus();else if(ti>=0)cards[0]?.focus()}
     if(e.key==='ArrowUp'&&ci>=2)cards[ci-2].focus();
   }
 });
 
-load('trending US videos');
+load('trending videos US');
 </script>
 </body>
 </html>
