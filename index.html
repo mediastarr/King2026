@@ -13,6 +13,7 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 .card.focused{border-color:#0ff;background:#003333;box-shadow:0 0 12px #0ff}
 .card img{width:100%;height:60px;object-fit:cover;display:block;background:#000;border-radius:2px}
 .card-title{font-size:9px;height:18px;overflow:hidden;line-height:1.2;margin-top:2px;color:#ddd}
+.card-badge{position:absolute;top:4px;right:4px;background:#f00;color:#fff;font-size:7px;padding:1px 4px;border-radius:2px;font-weight:bold}
 .keyboard{position:absolute;inset:0;background:#000;display:none;flex-direction:column;z-index:10}
 .keyboard.show{display:flex}
 .kb-head{background:#001a1a;padding:10px;text-align:center;border-bottom:3px solid #0ff}
@@ -24,16 +25,19 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 .kb-key.enter{background:#004400;border-color:#0a0;color:#0f0}
 .kb-key.back{background:#440000;border-color:#f00;color:#faa}
 .tabs{display:flex;height:30px;background:#111;border-top:2px solid #333}
-.tab{flex:1;background:#000;border:2px solid #333;color:#888;font-size:9px;font-weight:bold;outline:none}
+.tab{flex:1;background:#000;border:2px solid #333;color:#888;font-size:9px;font-weight:bold;outline:none;position:relative}
 .tab.focused,.tab.active{background:#003333;color:#0ff;border-color:#0ff}
-
-/* SMALL BACK BUTTON - TOP LEFT */
+.tab.refreshing::after{content:'';position:absolute;top:2px;right:2px;width:6px;height:6px;background:#0ff;border-radius:50%;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
 .player{position:fixed;inset:0;background:#000;display:none;z-index:100}
 .player.show{display:block}
 .back-btn{position:absolute;top:8px;left:8px;z-index:9999;background:rgba(255,0,0,0.85);color:#fff;border:2px solid rgba(255,255,255,0.9);padding:6px 14px;font-size:14px;font-weight:bold;border-radius:5px;backdrop-filter:blur(4px);outline:none;cursor:pointer;transition:opacity 0.3s}
 .back-btn.hidden{opacity:0;pointer-events:none}
 .back-btn.focused{background:#fff;color:#f00;box-shadow:0 0 15px #ff0}
 .player iframe{width:100%;height:100%;border:0;position:absolute;top:0;left:0}
+.loading-msg{grid-column:1/-1;text-align:center;padding:30px;color:#0ff;font-size:12px}
+.loading-msg span{display:inline-block;animation:spin 1s linear infinite;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -42,54 +46,140 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
   <div class="grid" id="grid"></div>
   <div class="keyboard" id="kb"><div class="kb-head"><div class="kb-text" id="kt">_</div></div><div class="kb-grid" id="kg"></div></div>
 </div>
-<div class="player" id="player">
-  <button class="back-btn" id="bb">◀ BACK</button>
-  <iframe id="fr" allow="autoplay;fullscreen" allowfullscreen></iframe>
-</div>
+<div class="player" id="player"><button class="back-btn" id="bb">◀ BACK</button><iframe id="fr" allow="autoplay;fullscreen" allowfullscreen></iframe></div>
 <div class="tabs" id="tabs">
-  <button class="tab active">HOME</button><button class="tab">SEARCH</button><button class="tab">NEWS</button><button class="tab">SPORTS</button><button class="tab">MUSIC</button><button class="tab">LIVE</button>
+  <button class="tab active" data-tab="home">HOME</button>
+  <button class="tab" data-tab="search">SEARCH</button>
+  <button class="tab" data-tab="news">NEWS</button>
+  <button class="tab" data-tab="sports">SPORTS</button>
+  <button class="tab" data-tab="music">MUSIC</button>
+  <button class="tab" data-tab="live">LIVE</button>
 </div>
 
 <script>
 const API='AIzaSyDurH02crJj5sqXrVO2Ts1ecUPviphWDMU';
-let cq='',ci=0,cf=null,hideTimer;
+let cq='',ci=0,cf=null,hideTimer,lastTab='home';
 const grid=document.getElementById('grid'),kb=document.getElementById('kb'),kg=document.getElementById('kg'),kt=document.getElementById('kt'),player=document.getElementById('player'),fr=document.getElementById('fr'),bb=document.getElementById('bb');
 
 setInterval(()=>document.getElementById('time').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),1000);
 function uk(){kt.textContent=cq||'_';}
 function sf(el){document.querySelectorAll('.focused').forEach(e=>e.classList.remove('focused'));if(el){el.classList.add('focused');el.focus();cf=el;}}
 
+// Keyboard setup
 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(c=>{const b=document.createElement('button');b.className='kb-key';b.textContent=c;b.onclick=()=>{cq+=c.toLowerCase();uk();};kg.appendChild(b);});
-[[' ','SPACE',1],['DEL','DEL',1],['CLEAR','CLR',1],['BACK','BACK',1,'back'],['ENTER','GO',1,'enter']].forEach(([c,t,w,cl])=>{const b=document.createElement('button');b.className='kb-key'+(w?' wide':'')+(cl?' '+cl:'');b.textContent=t;b.onclick=()=>{if(c==='ENTER'){if(cq){kb.classList.remove('show');lv(cq);cq='';}}else if(c==='BACK')kb.classList.remove('show');else if(c==='DEL')cq=cq.slice(0,-1);else if(c==='CLEAR')cq='';else cq+=c;uk();};kg.appendChild(b);});
+[[' ','SPACE',1],['DEL','DEL',1],['CLEAR','CLR',1],['BACK','BACK',1,'back'],['ENTER','GO',1,'enter']].forEach(([c,t,w,cl])=>{const b=document.createElement('button');b.className='kb-key'+(w?' wide':'')+(cl?' '+cl:'');b.textContent=t;b.onclick=()=>{if(c==='ENTER'){if(cq){kb.classList.remove('show');loadTab('search',cq);cq='';}}else if(c==='BACK')kb.classList.remove('show');else if(c==='DEL')cq=cq.slice(0,-1);else if(c==='CLEAR')cq='';else cq+=c;uk();};kg.appendChild(b);});
 
-async function lv(q){grid.innerHTML='<div style="grid-column:1/-1;padding:30px;text-align:center;color:#0ff">Loading...</div>';try{const r=await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&type=video&key=${API}&q=${encodeURIComponent(q)}`);const d=await r.json();grid.innerHTML='';d.items.forEach((v,i)=>{const c=document.createElement('div');c.className='card';c.dataset.i=i;c.innerHTML=`<img src="${v.snippet.thumbnails.medium.url}"><div class="card-title">${v.snippet.title}</div>`;c.onclick=()=>pv(v.id.videoId);grid.appendChild(c);});ci=0;sf(grid.children[0]);}catch(e){grid.innerHTML='<div style="color:red;padding:20px">Error</div>';}}
+// ENHANCED LOADER WITH CATEGORY SUPPORT
+async function loadTab(tab, customQuery=null){
+  const tabEl=document.querySelector(`[data-tab="${tab}"]`);
+  tabEl.classList.add('refreshing');
+  grid.innerHTML='<div class="loading-msg"><span>⟳</span>Loading latest...</div>';
+
+  let url='',params=new URLSearchParams({part:'snippet',maxResults:'20',type:'video',key:API,regionCode:'US',relevanceLanguage:'en',safeSearch:'moderate'});
+
+  // Different queries for each tab - ALWAYS FRESH
+  const queries={
+    home: 'trending videos US movies trailers 2024',
+    news: 'breaking news US world today live',
+    sports: 'sports highlights NFL NBA MLB US',
+    music: 'top music hits US Billboard 2024',
+    live: '',
+    search: customQuery||''
+  };
+
+  if(tab==='live'){
+    params.set('eventType','live');
+    params.set('q','live stream US');
+    params.set('order','viewCount');
+  }else{
+    params.set('q',queries[tab]);
+    params.set('order','date'); // Get newest
+    params.set('publishedAfter',new Date(Date.now()-7*24*60*60*1000).toISOString()); // Last 7 days
+  }
+
+  if(tab==='home')params.set('videoCategoryId',''); // All categories
+  if(tab==='news')params.set('videoCategoryId','25'); // News & Politics
+  if(tab==='sports')params.set('videoCategoryId','17'); // Sports
+  if(tab==='music')params.set('videoCategoryId','10'); // Music
+
+  url=`https://www.googleapis.com/youtube/v3/search?${params}`;
+
+  try{
+    const r=await fetch(url);
+    const d=await r.json();
+    grid.innerHTML='';
+
+    if(!d.items||d.items.length===0){
+      grid.innerHTML='<div class="loading-msg">No videos found</div>';
+      tabEl.classList.remove('refreshing');
+      return;
+    }
+
+    d.items.forEach((v,i)=>{
+      const c=document.createElement('div');
+      c.className='card';
+      c.dataset.i=i;
+      const isLive=v.snippet.liveBroadcastContent==='live';
+      const thumb=v.snippet.thumbnails.medium?.url||v.snippet.thumbnails.default.url;
+      c.innerHTML=`<div style="position:relative"><img src="${thumb}">${isLive?'<div class="card-badge">LIVE</div>':''}</div><div class="card-title">${v.snippet.title}</div>`;
+      c.onclick=()=>pv(v.id.videoId||v.id);
+      grid.appendChild(c);
+    });
+
+    ci=0;
+    sf(grid.children[0]);
+    lastTab=tab;
+
+    // Show refresh time
+    const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    console.log(`${tab.toUpperCase()} refreshed at ${time} - ${d.items.length} videos`);
+
+  }catch(e){
+    grid.innerHTML='<div class="loading-msg" style="color:#f66">Failed to load</div>';
+    console.error(e);
+  }
+
+  setTimeout(()=>tabEl.classList.remove('refreshing'),500);
+}
 
 function pv(id){
   player.classList.add('show');
-  fr.src=`https://www.youtube.com/embed/${id}?autoplay=1&controls=1&modestbranding=1`;
+  fr.src=`https://www.youtube.com/embed/${id}?autoplay=1&controls=1&modestbranding=1&rel=0`;
   bb.classList.remove('hidden');
   clearTimeout(hideTimer);
   hideTimer=setTimeout(()=>bb.classList.add('hidden'),3000);
   setTimeout(()=>sf(bb),100);
 }
 
-// BACK BUTTON - WORKS EVERY TIME
 function goBack(){
-  console.log('Going back...');
   player.classList.remove('show');
   fr.src='about:blank';
-  setTimeout(()=>{fr.src='';},100);
+  setTimeout(()=>fr.src='',100);
   setTimeout(()=>{const cards=[...grid.children].filter(c=>c.classList.contains('card'));if(cards[ci])sf(cards[ci]);},150);
 }
 
 bb.onclick=goBack;
-bb.addEventListener('touchstart',e=>{e.preventDefault();goBack();});
-
-// Show back button on tap
 player.addEventListener('click',e=>{if(e.target===player||e.target===fr){bb.classList.remove('hidden');clearTimeout(hideTimer);hideTimer=setTimeout(()=>bb.classList.add('hidden'),3000);}});
-fr.addEventListener('load',()=>{bb.classList.remove('hidden');clearTimeout(hideTimer);hideTimer=setTimeout(()=>bb.classList.add('hidden'),3000);});
 
-document.querySelectorAll('.tab').forEach((t,i)=>{t.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');const qs=['trending','','news','sports','music','live'];if(i===1){kb.classList.add('show');sf(kg.children[0]);}else{kb.classList.remove('show');lv(qs[i]);}};});
+// TAB HANDLERS - ALWAYS REFRESH
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.onclick=()=>{
+    const tabName=tab.dataset.tab;
+
+    // Update active state
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+
+    if(tabName==='search'){
+      kb.classList.add('show');
+      sf(kg.children[0]);
+    }else{
+      kb.classList.remove('show');
+      // ALWAYS refresh, even if same tab
+      loadTab(tabName);
+    }
+  };
+});
 
 // NAVIGATION
 document.addEventListener('keydown',e=>{
@@ -133,7 +223,9 @@ document.addEventListener('keydown',e=>{
   }
 });
 
-lv('trending');setTimeout(()=>sf(grid.children[0]),600);
+// Initial load
+loadTab('home');
+setTimeout(()=>sf(grid.children[0]),800);
 </script>
 </body>
 </html>
