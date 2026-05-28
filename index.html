@@ -7,10 +7,6 @@
 body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;display:flex;flex-direction:column;overflow:hidden}
 .header{height:24px;background:#111;display:flex;align-items:center;justify-content:space-between;padding:0 6px;font-size:10px;font-weight:bold;border-bottom:1px solid #333}
 .header span:first-child{color:#0ff}
-.search-display{background:#001418;padding:6px;text-align:center;border-bottom:2px solid #0ff;display:none}
-.search-display.show{display:block}
-.search-text{font-size:20px;color:#0ff;font-family:'Courier New',monospace;min-height:24px;font-weight:bold}
-.content{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
 .grid{flex:1;overflow-y:auto;padding:3px;display:grid;grid-template-columns:1fr 1fr;gap:3px;align-content:start;background:#000}
 .card{background:#111;border:2px solid #333;padding:2px}
 .card:focus{border-color:#0ff;outline:none;background:#002020}
@@ -20,129 +16,82 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 .keyboard-area.show{display:flex}
 .kb-display{background:#001a1a;padding:8px;text-align:center;border-bottom:2px solid #0ff}
 .kb-text{font-size:24px;color:#0ff;min-height:28px;font-weight:bold;font-family:'Courier New',monospace}
-.kb-hint{font-size:9px;color:#0aa;margin-top:2px}
 .kb-grid{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:4px;overflow-y:auto;background:#000;align-content:start}
 .kb-key{background:#222;border:3px solid #555;color:#fff;font-size:20px;font-weight:bold;border-radius:5px;min-height:46px;display:flex;align-items:center;justify-content:center}
-.kb-key:focus{background:#004444;border-color:#0ff;color:#0ff;outline:none;box-shadow:0 0 10px #0ff;transform:scale(1.05)}
+.kb-key:focus{background:#004444;border-color:#0ff;color:#0ff;outline:none;box-shadow:0 0 10px #0ff}
 .kb-key.wide{grid-column:span 2;font-size:15px}
 .kb-key.enter{background:#003300;border-color:#0a0;color:#0f0}
-.kb-key.enter:focus{background:#0a0;color:#000}
 .kb-key.back{background:#330000;border-color:#a00;color:#faa}
-.kb-key.back:focus{background:#a00;color:#fff}
-.kb-key.space{grid-column:span 4;font-size:13px;background:#0a0a0a}
+.kb-key.space{grid-column:span 4}
 .tabs{display:flex;height:28px;background:#111;border-top:1px solid #333}
 .tab{flex:1;background:#000;border:1px solid #333;color:#666;font-size:8px;font-weight:bold}
 .tab.active{background:#002020;color:#0ff;border-color:#0ff}
-.tab:focus{outline:1px solid #0ff}
-.player{position:fixed;inset:0;background:#000;display:none;flex-direction:column;z-index:100}
-.player.show{display:flex}
-.video-wrap{flex:1;position:relative;background:#000;display:flex;align-items:center;justify-content:center}
-.video-wrap iframe{width:100%;height:100%;border:0}
-.controls{height:44px;background:#111;display:flex;gap:3px;padding:3px;border-top:2px solid #333;flex-shrink:0;transition:opacity 0.3s}
-.controls.hidden{opacity:0;pointer-events:none}
-.ctrl{flex:1;background:#222;border:1px solid #444;color:#fff;font-size:14px;font-weight:bold;border-radius:4px}
-.ctrl:active{background:#0ff;color:#000}
-.ctrl.close{background:#400;border-color:#800}
-.play-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80px;height:80px;background:rgba(0,255,255,0.9);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;color:#000;cursor:pointer;z-index:5}
-.play-overlay.hidden{display:none}
+
+/* PLAYER WITH BIG BACK BUTTON */
+.player{position:fixed;inset:0;background:#000;display:none;z-index:100}
+.player.show{display:block}
+.back-bar{position:absolute;top:0;left:0;right:0;height:50px;background:linear-gradient(to bottom,rgba(0,0,0,0.9),rgba(0,0,0,0.7));display:flex;align-items:center;padding:0 10px;z-index:200;pointer-events:none}
+.back-button{pointer-events:auto;background:#ff0000;color:#fff;border:3px solid #fff;padding:8px 20px;font-size:16px;font-weight:bold;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.8);min-width:100px;text-align:center}
+.back-button:active{background:#fff;color:#f00;transform:scale(0.95)}
+.player iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
 </style>
 </head>
 <body>
 <div class="header"><span>▶ STARRTUBE</span><span id="time"></span></div>
-<div class="search-display" id="searchDisplay"><div class="search-text" id="searchText"></div></div>
-<div class="content">
+<div class="content" style="flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative">
   <div class="grid" id="grid"></div>
   <div class="keyboard-area" id="kbArea">
-    <div class="kb-display"><div class="kb-text" id="kbText">_</div><div class="kb-hint" id="kbHint">Arrows=move • ENTER=type</div></div>
+    <div class="kb-display"><div class="kb-text" id="kbText">_</div></div>
     <div class="kb-grid" id="kbGrid"></div>
   </div>
 </div>
+
+<!-- VIDEO PLAYER WITH BACK BUTTON TOP LEFT -->
 <div class="player" id="player">
-  <div class="video-wrap" id="videoWrap">
-    <div class="play-overlay" id="playOverlay">▶</div>
-    <iframe id="frame" allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>
+  <div class="back-bar">
+    <button class="back-button" id="backBtn">◀ BACK</button>
   </div>
-  <div class="controls" id="controls">
-    <button class="ctrl" id="rew">-10s</button>
-    <button class="ctrl" id="play">❚❚</button>
-    <button class="ctrl" id="fwd">+10s</button>
-    <button class="ctrl" id="fs">⛶ FULL</button>
-    <button class="ctrl close" id="close">✕ CLOSE</button>
-  </div>
+  <iframe id="frame" allow="autoplay; fullscreen" allowfullscreen></iframe>
 </div>
+
 <div class="tabs">
-  <button class="tab active" tabindex="0">HOME</button>
-  <button class="tab" tabindex="0">SEARCH</button>
-  <button class="tab" tabindex="0">NEWS</button>
-  <button class="tab" tabindex="0">SPORTS</button>
-  <button class="tab" tabindex="0">MUSIC</button>
-  <button class="tab" tabindex="0">LIVE</button>
+  <button class="tab active">HOME</button>
+  <button class="tab">SEARCH</button>
+  <button class="tab">NEWS</button>
+  <button class="tab">SPORTS</button>
+  <button class="tab">MUSIC</button>
+  <button class="tab">LIVE</button>
 </div>
 
 <script>
 const API_KEY='AIzaSyDurH02crJj5sqXrVO2Ts1ecUPviphWDMU';
-let searchQuery='',lastTap=0,lastKey='',currentVideo='',isPlaying=true,controlsTimeout;
-
+let searchQuery='',lastTap=0,lastKey='';
 setInterval(()=>document.getElementById('time').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),1000);
 
-const kbGrid=document.getElementById('kbGrid'),kbText=document.getElementById('kbText'),kbHint=document.getElementById('kbHint');
-function updateKb(){kbText.textContent=searchQuery||'_';kbText.style.opacity=searchQuery?'1':'0.5';}
-function createKey(char,display,wide=false,cls=''){const btn=document.createElement('button');btn.className='kb-key'+(wide?' wide':'')+(cls?' '+cls:'');btn.textContent=display||char;btn.type='button';btn.tabIndex=0;const action=()=>{const now=Date.now();if(char&&char===lastKey&&(now-lastTap)<280){kbHint.textContent='⚠ Blocked';setTimeout(updateKb,600);return;}lastKey=char;lastTap=now;if(char==='ENTER'){doSearch();return;}if(char==='BACK'){hideKeyboard();showHome();return;}if(char==='DEL'){searchQuery=searchQuery.slice(0,-1);}else if(char==='CLEAR'){searchQuery='';}else if(char){searchQuery+=char.toLowerCase();}updateKb();};btn.onclick=action;btn.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();action();}};kbGrid.appendChild(btn);return btn;}
-'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(c=>createKey(c));createKey(' ', 'SPACE', true, 'space');createKey('DEL', 'DELETE', true);createKey('CLEAR', 'CLEAR', true);createKey('BACK', '← BACK', true, 'back');createKey('ENTER', 'SEARCH ↵', true, 'enter');
-function showKeyboard(){document.getElementById('kbArea').classList.add('show');document.getElementById('searchDisplay').classList.remove('show');searchQuery='';updateKb();setTimeout(()=>kbGrid.querySelector('button').focus(),50);}
-function hideKeyboard(){document.getElementById('kbArea').classList.remove('show');}
+const kbGrid=document.getElementById('kbGrid'),kbText=document.getElementById('kbText');
+function updateKb(){kbText.textContent=searchQuery||'_';}
+function createKey(c,d,w=false,cls=''){const b=document.createElement('button');b.className='kb-key'+(w?' wide':'')+(cls?' '+cls:'');b.textContent=d||c;b.onclick=()=>{const n=Date.now();if(c&&c===lastKey&&(n-lastTap)<280)return;lastKey=c;lastTap=n;if(c==='ENTER'){doSearch();return;}if(c==='BACK'){hideKb();return;}if(c==='DEL')searchQuery=searchQuery.slice(0,-1);else if(c==='CLEAR')searchQuery='';else if(c)searchQuery+=c.toLowerCase();updateKb();};kbGrid.appendChild(b);}
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(c=>createKey(c));createKey(' ','SPACE',1,'space');createKey('DEL','DELETE',1);createKey('CLEAR','CLEAR',1);createKey('BACK','← BACK',1,'back');createKey('ENTER','SEARCH',1,'enter');
+function showKb(){document.getElementById('kbArea').classList.add('show');searchQuery='';updateKb();}
+function hideKb(){document.getElementById('kbArea').classList.remove('show');}
 
-async function loadVideos(q){const grid=document.getElementById('grid');grid.innerHTML='<div style="grid-column:1/-1;padding:20px;text-align:center;color:#555;font-size:10px">Loading...</div>';hideKeyboard();try{const res=await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=${API_KEY}&maxResults=20&regionCode=US&videoEmbeddable=true&q=${encodeURIComponent(q)}`);const data=await res.json();grid.innerHTML='';data.items.forEach(v=>{const c=document.createElement('div');c.className='card';c.tabIndex=0;c.innerHTML=`<img src="${v.snippet.thumbnails.medium.url}"><div class="card-title">${v.snippet.title}</div>`;c.onclick=()=>playVideo(v.id.videoId);c.onkeydown=e=>{if(e.key==='Enter')playVideo(v.id.videoId);};grid.appendChild(c);});grid.firstChild?.focus();}catch(e){grid.innerHTML='<div style="color:#f66;padding:20px">Error</div>';}}
+async function loadVideos(q){const g=document.getElementById('grid');g.innerHTML='<div style="grid-column:1/-1;padding:20px;text-align:center;color:#555">Loading...</div>';hideKb();try{const r=await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&key=${API_KEY}&maxResults=20&q=${encodeURIComponent(q)}`);const d=await r.json();g.innerHTML='';d.items.forEach(v=>{const c=document.createElement('div');c.className='card';c.tabIndex=0;c.innerHTML=`<img src="${v.snippet.thumbnails.medium.url}"><div class="card-title">${v.snippet.title}</div>`;c.onclick=()=>playVideo(v.id.videoId);g.appendChild(c);});}catch(e){g.innerHTML='<div style="color:#f66;padding:20px">Error</div>';}}
 
-function playVideo(videoId){
-  currentVideo=videoId;
-  const player=document.getElementById('player');
-  const frame=document.getElementById('frame');
-  const overlay=document.getElementById('playOverlay');
-
-  player.classList.add('show');
-  overlay.classList.remove('hidden');
-  isPlaying=false;
-
-  // Use direct embed - most reliable
-  const embedUrl=`https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&modestbranding=1&playsinline=1&rel=0&enablejsapi=1`;
-  frame.src=embedUrl;
-
-  // Hide overlay after a moment (video should start)
-  setTimeout(()=>{overlay.classList.add('hidden');isPlaying=true;updatePlayBtn();},1500);
-
-  showControls();
+function playVideo(id){
+  document.getElementById('player').classList.add('show');
+  document.getElementById('frame').src=`https://www.youtube.com/embed/${id}?autoplay=1&controls=1&modestbranding=1&rel=0`;
 }
 
-function showControls(){
-  const ctrls=document.getElementById('controls');
-  ctrls.classList.remove('hidden');
-  clearTimeout(controlsTimeout);
-  controlsTimeout=setTimeout(()=>{if(document.getElementById('player').classList.contains('show')){ctrls.classList.add('hidden');}},4000);
-}
+// BACK BUTTON - TOP LEFT
+document.getElementById('backBtn').onclick=function(){
+  document.getElementById('player').classList.remove('show');
+  document.getElementById('frame').src='';
+};
 
-function updatePlayBtn(){document.getElementById('play').textContent=isPlaying?'❚❚':'▶';}
+function doSearch(){const q=searchQuery.trim();if(q){hideKb();loadVideos(q);searchQuery='';}}
+document.querySelectorAll('.tab').forEach((t,i)=>{t.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');const qs=['trending','','news','sports','music','live'];if(i===1)showKb();else loadVideos(qs[i]);};});
 
-document.getElementById('playOverlay').onclick=function(){this.classList.add('hidden');isPlaying=true;updatePlayBtn();const frame=document.getElementById('frame');frame.src=frame.src.replace('autoplay=0','autoplay=1');};
-document.getElementById('play').onclick=function(){isPlaying=!isPlaying;updatePlayBtn();const frame=document.getElementById('frame');const overlay=document.getElementById('playOverlay');if(isPlaying){overlay.classList.add('hidden');frame.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}','*');}else{overlay.classList.remove('hidden');frame.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}','*');}showControls();};
-document.getElementById('rew').onclick=()=>{showControls();alert('-10s (use YouTube controls)');};
-document.getElementById('fwd').onclick=()=>{showControls();alert('+10s (use YouTube controls)');};
-document.getElementById('close').onclick=()=>{document.getElementById('player').classList.remove('show');document.getElementById('frame').src='';document.getElementById('playOverlay').classList.remove('hidden');};
-document.getElementById('fs').onclick=function(){const player=document.getElementById('player');if(!document.fullscreenElement){player.requestFullscreen().then(()=>{this.textContent='⛶ EXIT';showControls();}).catch(()=>{});}else{document.exitFullscreen().then(()=>{this.textContent='⛶ FULL';});}};
-
-document.getElementById('videoWrap').onclick=showControls;
-document.getElementById('videoWrap').ontouchstart=showControls;
-
-function doSearch(){const q=searchQuery.trim();if(!q){kbHint.textContent='Type first!';setTimeout(updateKb,800);return;}document.getElementById('searchText').textContent=q;document.getElementById('searchDisplay').classList.add('show');hideKeyboard();loadVideos(q);searchQuery='';}
-function showHome(){document.getElementById('searchDisplay').classList.remove('show');loadVideos('trending');}
-
-document.querySelectorAll('.tab').forEach((t,i)=>{t.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');const qs=['trending','','news','sports','music','live'];if(i===1)showKeyboard();else{hideKeyboard();document.getElementById('searchDisplay').classList.remove('show');loadVideos(qs[i]);}};});
-
-document.addEventListener('keydown',e=>{if(document.getElementById('player').classList.contains('show')){if(e.key==='Escape'){e.preventDefault();document.getElementById('close').click();}return;}const f=document.activeElement;const isKb=f.classList.contains('kb-key');const isCard=f.classList.contains('card');const isTab=f.classList.contains('tab');if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))return;if(isKb){e.preventDefault();const keys=[...kbGrid.querySelectorAll('button')];const idx=keys.indexOf(f);const cols=4;let next=null;if(e.key==='ArrowRight'&&keys[idx+1])next=keys[idx+1];else if(e.key==='ArrowLeft'&&idx>0)next=keys[idx-1];else if(e.key==='ArrowDown'&&keys[idx+cols])next=keys[idx+cols];else if(e.key==='ArrowUp'&&keys[idx-cols])next=keys[idx-cols];if(next)next.focus();return;}if(isCard||isTab){e.preventDefault();const cards=[...document.getElementById('grid').querySelectorAll('.card')];const tabs=[...document.querySelectorAll('.tab')];const ci=cards.indexOf(f),ti=tabs.indexOf(f);if(e.key==='ArrowRight'){if(ci>=0&&ci%2===0&&cards[ci+1])cards[ci+1].focus();else if(ti>=0&&ti<5)tabs[ti+1].focus();}if(e.key==='ArrowLeft'){if(ci>=0&&ci%2===1)cards[ci-1].focus();else if(ti>0)tabs[ti-1].focus();}if(e.key==='ArrowDown'){if(ci>=0&&cards[ci+2])cards[ci+2].focus();else if(ci>=0)tabs[0].focus();else if(ti>=0)cards[0]?.focus();}if(e.key==='ArrowUp'&&ci>=2)cards[ci-2].focus();}});
-
-document.addEventListener('fullscreenchange',()=>{const btn=document.getElementById('fs');btn.textContent=document.fullscreenElement?'⛶ EXIT':'⛶ FULL';showControls();});
-
-showHome();updateKb();
+loadVideos('trending');updateKb();
 </script>
 </body>
 </html>
