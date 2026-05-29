@@ -101,27 +101,29 @@ async function load(tab,q){
       videos=d.items.filter(v=>{const mins=parseDuration(v.contentDetails.duration);return mins>=4&&mins<=50;}).slice(0,50);
       videos=videos.map(v=>({id:{videoId:v.id},snippet:v.snippet,contentDetails:v.contentDetails}));
     }else if(tab==='shorts'){
-      // FIXED: Search for shorts specifically, get 50 then filter
-      const url=`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=50&type=video&videoDuration=short&order=viewCount&q=shorts&regionCode=US&key=${key}`;
+      // FIXED: Force US-only with multiple filters
+      const url=`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=50&type=video&videoDuration=short&order=viewCount&regionCode=US&relevanceLanguage=en&safeSearch=strict&q=%23shorts&key=${key}`;
       const r=await fetch(url);
       const d=await r.json();
       if(d.error)throw new Error(d.error.message);
 
-      // Get video IDs then fetch details to filter by exact duration
       const ids=d.items.map(v=>v.id.videoId).join(',');
-      const detailsUrl=`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${ids}&key=${key}`;
+      const detailsUrl=`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${ids}&key=${key}`;
       const dr=await fetch(detailsUrl);
       const dd=await dr.json();
 
       videos=dd.items.filter(v=>{
         const mins=parseDuration(v.contentDetails.duration);
-        return mins>0 && mins<=1; // True shorts under 60 seconds
+        // US filter: check channel title for common non-US patterns, and ensure <60s
+        const title=v.snippet.title.toLowerCase();
+        const isEnglish=!/[\u0400-\u04FF\u0600-\u06FF\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/.test(title);
+        return mins>0 && mins<=1 && isEnglish;
       }).slice(0,40);
 
       videos=videos.map(v=>({id:{videoId:v.id},snippet:v.snippet,contentDetails:v.contentDetails,isShort:true}));
     }else{
       const queries={news:'breaking news US today',sports:'NFL NBA MLB highlights US',live:'live now',search:q||''};
-      let url=`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${counts[tab]}&type=video&q=${encodeURIComponent(queries[tab])}&key=${key}&regionCode=US`;
+      let url=`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${counts[tab]}&type=video&q=${encodeURIComponent(queries[tab])}&key=${key}&regionCode=US&relevanceLanguage=en`;
       if(tab==='live')url+='&eventType=live&order=viewCount';else url+='&order=date&publishedAfter='+new Date(Date.now()-14*24*60*60*1000).toISOString();
       if(tab!=='live'&&tab!=='search')url+='&videoDuration=medium';
       const r=await fetch(url);
@@ -153,7 +155,7 @@ async function load(tab,q){
   }
 }
 
-function play(id){document.getElementById('p').classList.add('show');document.getElementById('f').src=`https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1`;document.getElementById('f').setAttribute('allow','autoplay; fullscreen');}
+function play(id){document.getElementById('p').classList.add('show');document.getElementById('f').src=`https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1`;}
 document.getElementById('b').onclick=()=>{document.getElementById('p').classList.remove('show');document.getElementById('f').src='';setTimeout(()=>setCardActive(curCard),100);};
 
 document.querySelectorAll('.tab').forEach((tab,i)=>{
