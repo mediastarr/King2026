@@ -14,6 +14,7 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 .card img{width:100%;height:65px;object-fit:cover;background:#111;border-radius:3px;display:block}
 .card-title{font-size:10px;margin-top:3px;height:24px;overflow:hidden;line-height:1.2}
 .duration{position:absolute;bottom:28px;right:6px;background:rgba(0,0,0,0.85);color:#fff;font-size:8px;padding:2px 4px;border-radius:2px;font-weight:bold}
+.shorts-badge{position:absolute;top:4px;left:4px;background:#f00;color:#fff;font-size:7px;padding:2px 4px;border-radius:2px;font-weight:bold}
 .keyboard{position:absolute;inset:0;background:#000;display:none;flex-direction:column;z-index:20;padding:10px}
 .keyboard.show{display:flex}
 .kb-display{background:#011;padding:12px;text-align:center;border:2px solid #0ff;border-radius:6px;margin-bottom:10px}
@@ -52,7 +53,7 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
   <button class="tab" data-tab="search">SEARCH<span class="count-badge" id="c-search">0</span></button>
   <button class="tab" data-tab="news">NEWS<span class="count-badge" id="c-news">0</span></button>
   <button class="tab" data-tab="sports">SPORTS<span class="count-badge" id="c-sports">0</span></button>
-  <button class="tab" data-tab="music">MUSIC<span class="count-badge" id="c-music">0</span></button>
+  <button class="tab" data-tab="shorts">SHORTS<span class="count-badge" id="c-shorts">0</span></button>
   <button class="tab" data-tab="live">LIVE<span class="count-badge" id="c-live">0</span></button>
 </div>
 
@@ -86,7 +87,7 @@ async function load(tab,q){
   grid.innerHTML='<div class="msg">Loading...</div>';
   cards=[];curCard=0;focusMode='cards';updateKeyStatus();
 
-  const counts={home:35,search:30,news:25,sports:20,music:35,live:25};
+  const counts={home:35,search:30,news:25,sports:20,shorts:30,live:25};
   const key=KEYS[keyIdx];
   const maxResults=counts[tab];
 
@@ -94,22 +95,26 @@ async function load(tab,q){
     let videos=[];
 
     if(tab==='home'){
-      // Load from ALL categories using mostPopular - then filter 4-50 mins
       const url=`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&chart=mostPopular&regionCode=US&maxResults=50&key=${key}`;
       const r=await fetch(url);
       const d=await r.json();
       if(d.error)throw new Error(d.error.message);
-
-      // Filter for 4-50 minute videos
+      videos=d.items.filter(v=>{const mins=parseDuration(v.contentDetails.duration);return mins>=4&&mins<=50;}).slice(0,35);
+      videos=videos.map(v=>({id:{videoId:v.id},snippet:v.snippet,contentDetails:v.contentDetails}));
+    }else if(tab==='shorts'){
+      // Load popular US Shorts - filter for <60 seconds
+      const url=`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&chart=mostPopular&regionCode=US&maxResults=50&key=${key}&videoCategoryId=0`;
+      const r=await fetch(url);
+      const d=await r.json();
+      if(d.error)throw new Error(d.error.message);
+      // Filter for Shorts (<60 seconds)
       videos=d.items.filter(v=>{
         const mins=parseDuration(v.contentDetails.duration);
-        return mins>=4 && mins<=50;
-      }).slice(0,35);
-
-      // Map to same format as search
-      videos=videos.map(v=>({id:{videoId:v.id},snippet:v.snippet,contentDetails:v.contentDetails}));
+        return mins>0 && mins<=1; // Under 1 minute = Shorts
+      }).slice(0,30);
+      videos=videos.map(v=>({id:{videoId:v.id},snippet:v.snippet,contentDetails:v.contentDetails,isShort:true}));
     }else{
-      const queries={news:'breaking news US today',sports:'NFL NBA MLB highlights US',music:'top hits Billboard 2024',live:'live now',search:q||''};
+      const queries={news:'breaking news US today',sports:'NFL NBA MLB highlights US',live:'live now',search:q||''};
       let url=`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${maxResults}&type=video&q=${encodeURIComponent(queries[tab])}&key=${key}&regionCode=US`;
       if(tab==='live')url+='&eventType=live&order=viewCount';else url+='&order=date&publishedAfter='+new Date(Date.now()-14*24*60*60*1000).toISOString();
       if(tab!=='live'&&tab!=='search')url+='&videoDuration=medium';
@@ -126,7 +131,8 @@ async function load(tab,q){
       const c=document.createElement('div');
       c.className='card';
       const dur=v.contentDetails?`<div class="duration">${formatDuration(v.contentDetails.duration)}</div>`:'';
-      c.innerHTML=`<img src="${v.snippet.thumbnails.medium.url}">${dur}<div class="card-title">${v.snippet.title}</div>`;
+      const shortBadge=v.isShort?'<div class="shorts-badge">SHORTS</div>':'';
+      c.innerHTML=`<img src="${v.snippet.thumbnails.medium.url}">${shortBadge}${dur}<div class="card-title">${v.snippet.title}</div>`;
       c.onclick=()=>play(v.id.videoId||v.id);
       grid.appendChild(c);
       cards.push(c);
