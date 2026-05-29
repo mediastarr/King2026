@@ -40,7 +40,7 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 <body>
 <div class="header"><span>▶ STARRTUBE</span><span id="t"></span></div>
 <div class="main">
-  <div class="key-status" id="ks">Key 1/7</div>
+  <div class="key-status" id="ks">Key 1/14</div>
   <div class="grid" id="g"></div>
   <div class="keyboard" id="kb">
     <div class="kb-display"><div class="kb-text" id="kt">_</div></div>
@@ -58,7 +58,23 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 </div>
 
 <script>
-const KEYS=['AIzaSyCxebesMswpVAubt4VhfpBP0IloB7B-6AE','AIzaSyDurH02crJj5sqXrVO2Ts1ecUPviphWDMU','AIzaSyA52UFVj2C-GKlX5nluPKHsqZThiyCnN48','AIzaSyC_5YNCC8nLEJzR-a_3jLCWB5Bt-ItjNds','AIzaSyC7lIhVU022mls-kplFDctiLiKmz_gZuE8','AIzaSyAXU8px5AsEy0EyaqXIHuNI54HhvPBNimc','AIzaSyAgoLgY55op-mYbDA5CQdU0p4QUFhtlbgk'];
+// 14 API KEYS WITH AUTO-FALLBACK
+const KEYS=[
+  'AIzaSyCxebesMswpVAubt4VhfpBP0IloB7B-6AE',
+  'AIzaSyDurH02crJj5sqXrVO2Ts1ecUPviphWDMU',
+  'AIzaSyA52UFVj2C-GKlX5nluPKHsqZThiyCnN48',
+  'AIzaSyC_5YNCC8nLEJzR-a_3jLCWB5Bt-ItjNds',
+  'AIzaSyC7lIhVU022mls-kplFDctiLiKmz_gZuE8',
+  'AIzaSyAXU8px5AsEy0EyaqXIHuNI54HhvPBNimc',
+  'AIzaSyAgoLgY55op-mYbDA5CQdU0p4QUFhtlbgk',
+  'AIzaSyAOBBJC3VvRsAQC2R-nenGvO23x--9SzB0',
+  'AIzaSyCxt2XsA80s67LNRTpgg-fBYqqHn2YgWDI',
+  'AIzaSyDHjpWZX7J9-39VM9Urb8LM102nr1H91GY',
+  'AIzaSyAivKVAqJkYqAkzX3lV1f8FiFlU-EchNYI',
+  'AIzaSyBFVv1THj4Q0jJvNJv9jfyUnYz8NG4eWRk',
+  'AIzaSyD4A2061bz3jVUjFg3Z8jsbgjiF7ii32h4',
+  'AIzaSyA1AKHRCe7aq8Bv4j6KqXTjmg9hS1Fc9ho'
+];
 let keyIdx=0, curCard=0, curTab=0, focusMode='cards', cards=[], searchTxt='', kbIdx=0;
 
 setInterval(()=>document.getElementById('t').textContent=new Date().toLocaleTimeString(),1000);
@@ -101,25 +117,15 @@ async function load(tab,q){
       videos=d.items.filter(v=>{const mins=parseDuration(v.contentDetails.duration);return mins>=4&&mins<=50;}).slice(0,50);
       videos=videos.map(v=>({id:{videoId:v.id},snippet:v.snippet,contentDetails:v.contentDetails}));
     }else if(tab==='shorts'){
-      // FIXED: Force US-only with multiple filters
       const url=`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=50&type=video&videoDuration=short&order=viewCount&regionCode=US&relevanceLanguage=en&safeSearch=strict&q=%23shorts&key=${key}`;
       const r=await fetch(url);
       const d=await r.json();
       if(d.error)throw new Error(d.error.message);
-
       const ids=d.items.map(v=>v.id.videoId).join(',');
-      const detailsUrl=`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${ids}&key=${key}`;
+      const detailsUrl=`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${ids}&key=${key}`;
       const dr=await fetch(detailsUrl);
       const dd=await dr.json();
-
-      videos=dd.items.filter(v=>{
-        const mins=parseDuration(v.contentDetails.duration);
-        // US filter: check channel title for common non-US patterns, and ensure <60s
-        const title=v.snippet.title.toLowerCase();
-        const isEnglish=!/[\u0400-\u04FF\u0600-\u06FF\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/.test(title);
-        return mins>0 && mins<=1 && isEnglish;
-      }).slice(0,40);
-
+      videos=dd.items.filter(v=>{const mins=parseDuration(v.contentDetails.duration);const title=v.snippet.title.toLowerCase();const isEnglish=!/[\u0400-\u04FF\u0600-\u06FF\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/.test(title);return mins>0&&mins<=1&&isEnglish;}).slice(0,40);
       videos=videos.map(v=>({id:{videoId:v.id},snippet:v.snippet,contentDetails:v.contentDetails,isShort:true}));
     }else{
       const queries={news:'breaking news US today',sports:'NFL NBA MLB highlights US',live:'live now',search:q||''};
@@ -133,7 +139,6 @@ async function load(tab,q){
     }
 
     if(!videos.length)throw new Error('No videos found');
-
     grid.innerHTML='';
     videos.forEach(v=>{
       const c=document.createElement('div');
@@ -145,10 +150,8 @@ async function load(tab,q){
       grid.appendChild(c);
       cards.push(c);
     });
-
     document.getElementById(`c-${tab}`).textContent=videos.length;
     setCardActive(0);
-
   }catch(e){
     if(keyIdx < KEYS.length-1){keyIdx++;grid.innerHTML=`<div class="error">Key ${keyIdx} failed<br>Trying ${keyIdx+1}/${KEYS.length}</div>`;updateKeyStatus();setTimeout(()=>load(tab,q),800);return;}
     grid.innerHTML=`<div class="error">All keys failed: ${e.message}</div>`;keyIdx=0;
