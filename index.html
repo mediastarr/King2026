@@ -8,13 +8,13 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 .header{height:28px;background:#111;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:11px;border-bottom:1px solid #333}
 .header span:first-child{color:#0ff;font-weight:bold}
 .main{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column}
-.grid{flex:1;overflow-y:auto;padding:5px;display:grid;grid-template-columns:1fr 1fr;gap:5px;background:#000;align-content:start}
-.card{background:#222;border:3px solid #444;border-radius:6px;padding:4px;cursor:pointer;position:relative}
+.grid{flex:1;overflow-y:auto;padding:5px;display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#000;align-content:start}
+.card{background:#222;border:3px solid #444;border-radius:6px;padding:5px;cursor:pointer;position:relative}
 .card.active{border-color:#0ff;background:#033;box-shadow:0 0 10px #0ff}
-.card img{width:100%;height:65px;object-fit:cover;background:#111;border-radius:3px;display:block}
-.card-title{font-size:10px;margin-top:3px;height:24px;overflow:hidden;line-height:1.2}
-.duration{position:absolute;bottom:28px;right:6px;background:rgba(0,0,0,0.85);color:#fff;font-size:8px;padding:2px 4px;border-radius:2px;font-weight:bold}
-.shorts-badge{position:absolute;top:4px;left:4px;background:#f00;color:#fff;font-size:7px;padding:2px 4px;border-radius:2px;font-weight:bold}
+.card img{width:100%;height:68px;object-fit:cover;background:#111;border-radius:3px;display:block}
+.card-title{font-size:11px;margin-top:4px;height:32px;overflow:hidden;line-height:1.35;color:#fff;font-weight:500}
+.duration{position:absolute;bottom:36px;right:7px;background:rgba(0,0,0,0.9);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;font-weight:bold}
+.shorts-badge{position:absolute;top:5px;left:5px;background:#f00;color:#fff;font-size:8px;padding:2px 5px;border-radius:3px;font-weight:bold}
 .keyboard{position:absolute;inset:0;background:#000;display:none;flex-direction:column;z-index:20;padding:10px}
 .keyboard.show{display:flex}
 .kb-display{background:#011;padding:12px;text-align:center;border:2px solid #0ff;border-radius:6px;margin-bottom:10px}
@@ -58,7 +58,6 @@ body{background:#000;color:#fff;font-family:Arial;width:600px;height:600px;displ
 </div>
 
 <script>
-// 14 API KEYS WITH AUTO-FALLBACK
 const KEYS=[
   'AIzaSyCxebesMswpVAubt4VhfpBP0IloB7B-6AE',
   'AIzaSyDurH02crJj5sqXrVO2Ts1ecUPviphWDMU',
@@ -102,56 +101,39 @@ async function load(tab,q){
   const grid=document.getElementById('g');
   grid.innerHTML='<div class="msg">Loading...</div>';
   cards=[];curCard=0;focusMode='cards';updateKeyStatus();
-
   const counts={home:50,search:30,news:25,sports:20,shorts:40,live:25};
   const key=KEYS[keyIdx];
-
   try{
     let videos=[];
-
     if(tab==='home'){
       const url=`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&chart=mostPopular&regionCode=US&maxResults=50&key=${key}`;
-      const r=await fetch(url);
-      const d=await r.json();
-      if(d.error)throw new Error(d.error.message);
+      const r=await fetch(url);const d=await r.json();if(d.error)throw new Error(d.error.message);
       videos=d.items.filter(v=>{const mins=parseDuration(v.contentDetails.duration);return mins>=4&&mins<=50;}).slice(0,50);
       videos=videos.map(v=>({id:{videoId:v.id},snippet:v.snippet,contentDetails:v.contentDetails}));
     }else if(tab==='shorts'){
       const url=`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=50&type=video&videoDuration=short&order=viewCount&regionCode=US&relevanceLanguage=en&safeSearch=strict&q=%23shorts&key=${key}`;
-      const r=await fetch(url);
-      const d=await r.json();
-      if(d.error)throw new Error(d.error.message);
+      const r=await fetch(url);const d=await r.json();if(d.error)throw new Error(d.error.message);
       const ids=d.items.map(v=>v.id.videoId).join(',');
-      const detailsUrl=`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${ids}&key=${key}`;
-      const dr=await fetch(detailsUrl);
-      const dd=await dr.json();
+      const dr=await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${ids}&key=${key}`);const dd=await dr.json();
       videos=dd.items.filter(v=>{const mins=parseDuration(v.contentDetails.duration);const title=v.snippet.title.toLowerCase();const isEnglish=!/[\u0400-\u04FF\u0600-\u06FF\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/.test(title);return mins>0&&mins<=1&&isEnglish;}).slice(0,40);
       videos=videos.map(v=>({id:{videoId:v.id},snippet:v.snippet,contentDetails:v.contentDetails,isShort:true}));
     }else{
       const queries={news:'breaking news US today',sports:'NFL NBA MLB highlights US',live:'live now',search:q||''};
       let url=`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=${counts[tab]}&type=video&q=${encodeURIComponent(queries[tab])}&key=${key}&regionCode=US&relevanceLanguage=en`;
-      if(tab==='live')url+='&eventType=live&order=viewCount';else url+='&order=date&publishedAfter='+new Date(Date.now()-14*24*60*60*1000).toISOString();
+      if(tab==='live')url+='&eventType=live&order=viewCount';else url+='&order=date&publishedAfter='+new Date(Date.now()-14*24*60*1000).toISOString();
       if(tab!=='live'&&tab!=='search')url+='&videoDuration=medium';
-      const r=await fetch(url);
-      const d=await r.json();
-      if(d.error)throw new Error(d.error.message);
-      videos=d.items||[];
+      const r=await fetch(url);const d=await r.json();if(d.error)throw new Error(d.error.message);videos=d.items||[];
     }
-
     if(!videos.length)throw new Error('No videos found');
     grid.innerHTML='';
     videos.forEach(v=>{
-      const c=document.createElement('div');
-      c.className='card';
+      const c=document.createElement('div');c.className='card';
       const dur=v.contentDetails?`<div class="duration">${formatDuration(v.contentDetails.duration)}</div>`:'';
       const shortBadge=v.isShort?'<div class="shorts-badge">SHORTS</div>':'';
       c.innerHTML=`<img src="${v.snippet.thumbnails.medium.url}">${shortBadge}${dur}<div class="card-title">${v.snippet.title}</div>`;
-      c.onclick=()=>play(v.id.videoId||v.id);
-      grid.appendChild(c);
-      cards.push(c);
+      c.onclick=()=>play(v.id.videoId||v.id);grid.appendChild(c);cards.push(c);
     });
-    document.getElementById(`c-${tab}`).textContent=videos.length;
-    setCardActive(0);
+    document.getElementById(`c-${tab}`).textContent=videos.length;setCardActive(0);
   }catch(e){
     if(keyIdx < KEYS.length-1){keyIdx++;grid.innerHTML=`<div class="error">Key ${keyIdx} failed<br>Trying ${keyIdx+1}/${KEYS.length}</div>`;updateKeyStatus();setTimeout(()=>load(tab,q),800);return;}
     grid.innerHTML=`<div class="error">All keys failed: ${e.message}</div>`;keyIdx=0;
@@ -162,44 +144,15 @@ function play(id){document.getElementById('p').classList.add('show');document.ge
 document.getElementById('b').onclick=()=>{document.getElementById('p').classList.remove('show');document.getElementById('f').src='';setTimeout(()=>setCardActive(curCard),100);};
 
 document.querySelectorAll('.tab').forEach((tab,i)=>{
-  tab.onclick=(e)=>{
-    e.stopPropagation();
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    tab.classList.add('active');
-    curTab=i;
-    const t=tab.dataset.tab;
-    if(t==='search'){document.getElementById('kb').classList.add('show');searchTxt='';kt.textContent='_';setKbActive(0);}
-    else{document.getElementById('kb').classList.remove('show');load(t);}
-  };
+  tab.onclick=(e)=>{e.stopPropagation();document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');curTab=i;const t=tab.dataset.tab;if(t==='search'){document.getElementById('kb').classList.add('show');searchTxt='';kt.textContent='_';setKbActive(0);}else{document.getElementById('kb').classList.remove('show');load(t);}};
 });
 
 document.addEventListener('keydown',e=>{
   if(document.getElementById('p').classList.contains('show')){if(['Escape','Backspace'].includes(e.key))document.getElementById('b').click();return;}
-  const kbOpen=document.getElementById('kb').classList.contains('show');
-  const tabs=document.querySelectorAll('.tab');
-  if(kbOpen&&focusMode==='keyboard'){
-    const keys=document.querySelectorAll('.kb-key');
-    if(e.key==='ArrowRight'&&kbIdx<keys.length-1){e.preventDefault();setKbActive(kbIdx+1);}
-    else if(e.key==='ArrowLeft'&&kbIdx>0){e.preventDefault();setKbActive(kbIdx-1);}
-    else if(e.key==='ArrowDown'&&kbIdx+5<keys.length){e.preventDefault();setKbActive(kbIdx+5);}
-    else if(e.key==='ArrowUp'&&kbIdx>=5){e.preventDefault();setKbActive(kbIdx-5);}
-    else if(e.key==='Enter'){e.preventDefault();keys[kbIdx].click();}
-    return;
-  }
-  if(focusMode==='tabs'){
-    if(e.key==='ArrowRight'&&curTab<5){e.preventDefault();setTabFocus(curTab+1);}
-    else if(e.key==='ArrowLeft'&&curTab>0){e.preventDefault();setTabFocus(curTab-1);}
-    else if(e.key==='ArrowUp'&&cards.length){e.preventDefault();setCardActive(Math.min(curCard,cards.length-1));}
-    else if(e.key==='Enter'){e.preventDefault();tabs[curTab].click();}
-    return;
-  }
-  if(focusMode==='cards'){
-    if(e.key==='ArrowRight'&&curCard%2===0&&cards[curCard+1]){e.preventDefault();setCardActive(curCard+1);}
-    else if(e.key==='ArrowLeft'&&curCard%2===1){e.preventDefault();setCardActive(curCard-1);}
-    else if(e.key==='ArrowDown'){e.preventDefault();if(cards[curCard+2])setCardActive(curCard+2);else setTabFocus(curTab);}
-    else if(e.key==='ArrowUp'){e.preventDefault();if(curCard<2){setTabFocus(0);}else{setCardActive(curCard-2);}}
-    else if(e.key==='Enter'&&cards[curCard]){e.preventDefault();cards[curCard].click();}
-  }
+  const kbOpen=document.getElementById('kb').classList.contains('show');const tabs=document.querySelectorAll('.tab');
+  if(kbOpen&&focusMode==='keyboard'){const keys=document.querySelectorAll('.kb-key');if(e.key==='ArrowRight'&&kbIdx<keys.length-1){e.preventDefault();setKbActive(kbIdx+1);}else if(e.key==='ArrowLeft'&&kbIdx>0){e.preventDefault();setKbActive(kbIdx-1);}else if(e.key==='ArrowDown'&&kbIdx+5<keys.length){e.preventDefault();setKbActive(kbIdx+5);}else if(e.key==='ArrowUp'&&kbIdx>=5){e.preventDefault();setKbActive(kbIdx-5);}else if(e.key==='Enter'){e.preventDefault();keys[kbIdx].click();}return;}
+  if(focusMode==='tabs'){if(e.key==='ArrowRight'&&curTab<5){e.preventDefault();setTabFocus(curTab+1);}else if(e.key==='ArrowLeft'&&curTab>0){e.preventDefault();setTabFocus(curTab-1);}else if(e.key==='ArrowUp'&&cards.length){e.preventDefault();setCardActive(Math.min(curCard,cards.length-1));}else if(e.key==='Enter'){e.preventDefault();tabs[curTab].click();}return;}
+  if(focusMode==='cards'){if(e.key==='ArrowRight'&&curCard%2===0&&cards[curCard+1]){e.preventDefault();setCardActive(curCard+1);}else if(e.key==='ArrowLeft'&&curCard%2===1){e.preventDefault();setCardActive(curCard-1);}else if(e.key==='ArrowDown'){e.preventDefault();if(cards[curCard+2])setCardActive(curCard+2);else setTabFocus(curTab);}else if(e.key==='ArrowUp'){e.preventDefault();if(curCard<2){setTabFocus(0);}else{setCardActive(curCard-2);}}else if(e.key==='Enter'&&cards[curCard]){e.preventDefault();cards[curCard].click();}}
 });
 
 updateKeyStatus();
